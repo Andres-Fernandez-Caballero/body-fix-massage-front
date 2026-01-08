@@ -3,11 +3,14 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from "rea
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function ProfileScreen() {
   const router = useRouter()
+  const { user, logout } = useAuth()
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout()
     router.replace("/")
   }
 
@@ -19,8 +22,8 @@ export default function ProfileScreen() {
 
       <View style={styles.profileSection}>
         <Image source={{ uri: "/user-profile-avatar.png" }} style={styles.avatar} />
-        <Text style={styles.name}>Maria Rodriguez</Text>
-        <Text style={styles.email}>maria.rodriguez@email.com</Text>
+        <Text style={styles.name}>{user?.name}</Text>
+        <Text style={styles.email}>{user?.email}</Text>
       </View>
 
       <View style={styles.section}>

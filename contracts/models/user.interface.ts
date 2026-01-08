@@ -1,9 +1,10 @@
 export interface User {
-    id: string;
+    id: number;
     name: string;
+    lastName: string;
     email: string;
-    role: 'admin' | 'user' | 'guest';
-    token: string;
+    role: 'admin' | 'client' | 'massage_therapist';
+    profilePicture: string | null;
 }
 
 export interface Booking {

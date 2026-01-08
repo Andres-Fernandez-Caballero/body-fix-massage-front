@@ -14,17 +14,56 @@ import {
 import { useRouter } from "expo-router"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
+import { toast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
+import { LoginSchema } from "@/contracts/schemas/auth/LoginSchema"
 
 export default function TherapistLoginScreen() {
   const router = useRouter()
+  const { login, authState, user, logout } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async () => {
-    // TODO: Implement API call
-    console.log("Therapist Login:", { email, password })
-    router.replace("/(therapist)/dashboard")
+    const result = LoginSchema.safeParse({ email, password });
+
+    if (!result.success) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email and password",
+        variant: "danger",
+      })
+      return;
+    }
+
+
+    await login(result.data);
+  
+    if (authState === 'authenticated') {
+      console.log(user)
+      if (user?.role === 'admin'){
+         toast({
+        title: "Usuario sin Rol habilitado",
+        description: "Este usuario no tiene un rol habilitado para usar la aplicacion",
+        variant: "warning",
+      })
+      logout()
+      }
+
+      else if (user?.role === 'massage_therapist') return router.replace("/(therapist)/dashboard")
+      else if (user?.role === 'client') return router.replace("/(client)/home")
+      else toast({
+        title: "Error de validacion",
+        description: "No se pudo iniciar sesión",
+        variant: "warning",
+      })
+    }
+    else toast({
+      title: "Error de validacion",
+      description: "Credenciales invalidas",
+      variant: "danger",
+    })
   }
 
   return (

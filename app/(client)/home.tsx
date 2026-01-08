@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions
 import { useRouter } from "expo-router"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
+import { useAuth } from "@/hooks/use-auth"
 
 const { width } = Dimensions.get("window")
 
@@ -39,12 +40,13 @@ const MASSAGE_TYPES = [
 
 export default function ClientHomeScreen() {
   const router = useRouter()
+  const { user } = useAuth()
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Hello, Maria</Text>
+          <Text style={styles.greeting}>Hello, {user?.name}</Text>
           <Text style={styles.subtitle}>How can we help you relax today?</Text>
         </View>
         <TouchableOpacity style={styles.notificationButton}>

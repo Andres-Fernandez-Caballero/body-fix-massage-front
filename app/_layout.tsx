@@ -1,7 +1,10 @@
+import { Toaster } from "@/components/ui/toaster"
 import { Stack } from "expo-router"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
 export default function RootLayout() {
+
+
   return (
     <SafeAreaProvider>
       <Stack screenOptions={{ headerShown: false }}>
@@ -10,6 +13,7 @@ export default function RootLayout() {
         <Stack.Screen name="(client)" />
         <Stack.Screen name="(therapist)" />
       </Stack>
+      <Toaster />
     </SafeAreaProvider>
   )
 }

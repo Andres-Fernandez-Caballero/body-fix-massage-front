@@ -3,16 +3,25 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from "rea
 import { useRouter } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "@/constants/Colors"
+import { useAuth } from "@/hooks/use-auth"
+import { useEffect } from "react"
 
 const { width, height } = Dimensions.get("window")
 
 export default function WelcomeScreen() {
   const router = useRouter()
+  const { authState, user } = useAuth()
+
+  useEffect(() => {
+    if (authState === "authenticated") {
+      router.replace(user?.role === "massage_therapist" ? "(therapist)/dashboard" : "(client)/home")
+    }
+  }, [authState, user])
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#3D64F4", "#2D4AC7"]}
+        colors={["#f4cf3dff", "#c7ad2dff"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}

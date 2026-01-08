@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useToast } from "@/hooks/use-toast"
 import {
   View,
   Text,
@@ -19,17 +20,46 @@ import { LoginSchema } from "@/contracts/schemas/auth/LoginSchema"
 
 export default function ClientLoginScreen() {
   const router = useRouter()
-  const { login, loading, isAuthenticated  } = useAuth()
+  const { login, user, logout } = useAuth()
+  const { toast } = useToast()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async () => {
-    const validatedData = LoginSchema.parse({email, password});
-    await login(validatedData);
+    const result = LoginSchema.safeParse({ email, password });
 
-    if(isAuthenticated) router.replace("/(client)/home")
-    else alert("Invalid credentials")
+    if (!result.success) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email and password",
+        variant: "danger",
+      })
+      return;
+    }
+
+
+    const authState = await login(result.data);
+  
+    if (authState === 'authenticated') {
+      if (user?.role === 'admin'){
+         toast({
+        title: "Usuario sin Rol habilitado",
+        description: "Este usuario no tiene un rol habilitado para usar la aplicacion",
+        variant: "warning",
+      })
+      logout()
+      }
+
+      else if (user?.role === 'massage_therapist') return router.replace("/(therapist)/dashboard")
+      else if (user?.role === 'client') return router.replace("/(client)/home")
+      
+    }
+    else if(authState === 'unauthorized') toast({
+      title: "Error de validacion",
+      description: "Credenciales invalidas",
+      variant: "danger",
+    })
   }
 
   return (

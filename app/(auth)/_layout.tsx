@@ -1,6 +1,15 @@
-import { Stack } from "expo-router"
+import { Redirect, Stack } from "expo-router"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function AuthLayout() {
+
+  const { authState, user } = useAuth()
+
+  if (authState === "authenticated") {
+    
+    return <Redirect href={user?.role === "massage_therapist" ? "(therapist)/dashboard" : "(client)/home"} />
+  }
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="client-login" />

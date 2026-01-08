@@ -1,8 +1,16 @@
-import { Tabs } from "expo-router"
+import { Tabs, useRouter } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "@/constants/Colors"
+import { useAuth } from "@/hooks/use-auth";
+import { Redirect } from "expo-router";
 
 export default function ClientLayout() {
+  const { authState, user } = useAuth();
+  
+  if (authState !== "authenticated" && user?.role !== "client") {
+    return <Redirect href="/" />
+  }
+
   return (
     <Tabs
       screenOptions={{

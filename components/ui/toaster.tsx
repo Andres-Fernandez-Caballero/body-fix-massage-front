@@ -1,5 +1,4 @@
-'use client'
-
+import { View } from 'react-native';
 import { useToast } from '@/hooks/use-toast'
 import {
   Toast,
@@ -15,21 +14,23 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
-        return (
-          <Toast key={id} {...props}>
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
-        )
-      })}
-      <ToastViewport />
+      <ToastViewport>
+        {toasts.map(function ({ id, title, description, action, ...props }) {
+          if (!props.open) return null;
+          return (
+            <Toast key={id} {...props}>
+              <View style={{ gap: 4 }}>
+                {title && <ToastTitle>{title}</ToastTitle>}
+                {description && (
+                  <ToastDescription>{description}</ToastDescription>
+                )}
+              </View>
+              {action}
+              <ToastClose />
+            </Toast>
+          )
+        })}
+      </ToastViewport>
     </ToastProvider>
   )
 }
