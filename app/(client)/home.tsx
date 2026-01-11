@@ -4,6 +4,10 @@ import { useRouter } from "expo-router"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
 import { useAuth } from "@/hooks/use-auth"
+import { useEffect, useState } from "react"
+import { annuncementsApi } from "@/data/api/annuncements"
+import { Announcement } from "@/contracts/models/announcements.interface"
+import { useAnnouncements } from "@/hooks/use-announcements"
 
 const { width } = Dimensions.get("window")
 
@@ -41,6 +45,11 @@ const MASSAGE_TYPES = [
 export default function ClientHomeScreen() {
   const router = useRouter()
   const { user } = useAuth()
+  const {destacates, loading, error, refresh} = useAnnouncements()
+
+  useEffect(() => {
+    refresh()
+  }, [])
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -62,17 +71,17 @@ export default function ClientHomeScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Popular Services</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cardsContainer}>
-          {MASSAGE_TYPES.map((massage) => (
-            <TouchableOpacity key={massage.id} style={styles.card}>
-              <Image source={{ uri: massage.image }} style={styles.cardImage} />
+          {destacates.map((annuncement) => (
+            <TouchableOpacity key={annuncement.id} style={styles.card}>
+              <Image source={{ uri: "/sports-massage-athletic.jpg" }} style={styles.cardImage} />
               <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{massage.name}</Text>
+                <Text style={styles.cardTitle}>{annuncement.title}</Text>
                 <View style={styles.cardInfo}>
                   <Ionicons name="time-outline" size={14} color={Colors.light.icon} />
-                  <Text style={styles.cardInfoText}>{massage.duration}</Text>
+                  <Text style={styles.cardInfoText}>{"90 min"}</Text>
                 </View>
                 <View style={styles.cardFooter}>
-                  <Text style={styles.cardPrice}>{massage.price}</Text>
+                  <Text style={styles.cardPrice}>{annuncement.price}</Text>
                   <TouchableOpacity style={styles.bookButton}>
                     <Text style={styles.bookButtonText}>Book</Text>
                   </TouchableOpacity>
