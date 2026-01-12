@@ -15,7 +15,6 @@ export default function AuthLayout() {
       <Stack.Screen name="client-login" />
       <Stack.Screen name="client-register" />
       <Stack.Screen name="therapist-login" />
-      <Stack.Screen name="therapist-register" />
     </Stack>
   )
 }

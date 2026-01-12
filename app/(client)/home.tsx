@@ -11,36 +11,7 @@ import { useAnnouncements } from "@/hooks/use-announcements"
 
 const { width } = Dimensions.get("window")
 
-const MASSAGE_TYPES = [
-  {
-    id: "1",
-    name: "Swedish Massage",
-    duration: "60 min",
-    price: "$80",
-    image: "/swedish-massage-relaxation.jpg",
-  },
-  {
-    id: "2",
-    name: "Deep Tissue",
-    duration: "90 min",
-    price: "$110",
-    image: "/deep-tissue-massage.png",
-  },
-  {
-    id: "3",
-    name: "Sports Massage",
-    duration: "60 min",
-    price: "$95",
-    image: "/sports-massage-athletic.jpg",
-  },
-  {
-    id: "4",
-    name: "Prenatal Massage",
-    duration: "60 min",
-    price: "$85",
-    image: "/prenatal-pregnancy-massage.jpg",
-  },
-]
+
 
 export default function ClientHomeScreen() {
   const router = useRouter()
@@ -73,12 +44,12 @@ export default function ClientHomeScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cardsContainer}>
           {destacates.map((annuncement) => (
             <TouchableOpacity key={annuncement.id} style={styles.card}>
-              <Image source={{ uri: "/sports-massage-athletic.jpg" }} style={styles.cardImage} />
+              <Image source={{ uri: annuncement.dicipline.image }} style={styles.cardImage} />
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{annuncement.title}</Text>
                 <View style={styles.cardInfo}>
                   <Ionicons name="time-outline" size={14} color={Colors.light.icon} />
-                  <Text style={styles.cardInfoText}>{"90 min"}</Text>
+                  <Text style={styles.cardInfoText}>{annuncement.dicipline.image} min</Text>
                 </View>
                 <View style={styles.cardFooter}>
                   <Text style={styles.cardPrice}>{annuncement.price}</Text>

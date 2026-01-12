@@ -27,6 +27,7 @@ export default function ClientLoginScreen() {
   const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async () => {
+    console.log(email, password)
     const result = LoginSchema.safeParse({ email, password });
 
     if (!result.success) {
@@ -42,6 +43,7 @@ export default function ClientLoginScreen() {
     const authState = await login(result.data);
   
     if (authState === 'authenticated') {
+      console.log(user)
       if (user?.role === 'admin'){
          toast({
         title: "Usuario sin Rol habilitado",
