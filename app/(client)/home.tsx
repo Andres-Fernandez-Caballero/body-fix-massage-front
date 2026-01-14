@@ -49,7 +49,7 @@ export default function ClientHomeScreen() {
                 <Text style={styles.cardTitle}>{annuncement.title}</Text>
                 <View style={styles.cardInfo}>
                   <Ionicons name="time-outline" size={14} color={Colors.light.icon} />
-                  <Text style={styles.cardInfoText}>{annuncement.dicipline.image} min</Text>
+                  <Text style={styles.cardInfoText}>{annuncement.duration} min</Text>
                 </View>
                 <View style={styles.cardFooter}>
                   <Text style={styles.cardPrice}>{annuncement.price}</Text>

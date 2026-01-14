@@ -6,7 +6,7 @@ import { Redirect } from "expo-router";
 
 export default function ClientLayout() {
   const { authState, user } = useAuth();
-  
+
   if (authState !== "authenticated" && user?.role !== "client") {
     return <Redirect href="/" />
   }
@@ -34,6 +34,13 @@ export default function ClientLayout() {
         }}
       />
       <Tabs.Screen
+        name="explorer"
+        options={{
+          title: "Explore",
+          tabBarIcon: ({ color, size }) => <Ionicons name="search" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="bookings"
         options={{
           title: "Bookings",
@@ -45,6 +52,13 @@ export default function ClientLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="book/[id]"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
         }}
       />
     </Tabs>

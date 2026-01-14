@@ -29,7 +29,7 @@ export default function ClientLoginScreen() {
   const handleLogin = async () => {
     console.log(email, password)
     const result = LoginSchema.safeParse({ email, password });
-
+    console.log(result)
     if (!result.success) {
       toast({
         title: "Validation Error",
@@ -41,7 +41,7 @@ export default function ClientLoginScreen() {
 
 
     const authState = await login(result.data);
-  
+    console.log(authState)
     if (authState === 'authenticated') {
       console.log(user)
       if (user?.role === 'admin'){

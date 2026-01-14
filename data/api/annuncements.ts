@@ -6,6 +6,6 @@ interface AnnuncementsResponse {
 }
 
 export const annuncementsApi = {
-    getAnnuncements: () => axiosInstance.get('/api/v1/annuncements'),
+    getAnnuncements: () => axiosInstance.get('/api/v1/announcements'),
     getAnnuncementsDestacates: () => axiosInstance.get('/api/v1/announcements/destacates'),
 }
