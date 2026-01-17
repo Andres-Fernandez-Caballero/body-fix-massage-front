@@ -1,13 +1,14 @@
 "use client"
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from "react-native"
+import { View, Text, ScrollView, TouchableOpacity, Image, Dimensions } from "react-native"
 import { useRouter } from "expo-router"
-import { Colors } from "@/constants/Colors"
+import { useTheme } from "@/contexts/ThemeContext"
 import { Ionicons } from "@expo/vector-icons"
 import { useAuth } from "@/hooks/use-auth"
 import { useEffect, useState } from "react"
 import { annuncementsApi } from "@/data/api/annuncements"
 import { Announcement } from "@/contracts/models/announcements.interface"
 import { useAnnouncements } from "@/hooks/use-announcements"
+import { getClientHomeStyles } from "@/styles/themedStyles"
 
 const { width } = Dimensions.get("window")
 
@@ -16,45 +17,48 @@ const { width } = Dimensions.get("window")
 export default function ClientHomeScreen() {
   const router = useRouter()
   const { user } = useAuth()
+  const { colors, isDark } = useTheme()
   const {destacates, loading, error, refresh} = useAnnouncements()
 
   useEffect(() => {
     refresh()
   }, [])
+  
+  const dynamicStyles = getClientHomeStyles(colors, isDark)
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
+    <ScrollView style={dynamicStyles.container} showsVerticalScrollIndicator={false}>
+      <View style={dynamicStyles.header}>
         <View>
-          <Text style={styles.greeting}>Hello, {user?.name}</Text>
-          <Text style={styles.subtitle}>How can we help you relax today?</Text>
+          <Text style={dynamicStyles.greeting}>Hello, {user?.name}</Text>
+          <Text style={dynamicStyles.subtitle}>How can we help you relax today?</Text>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color={Colors.light.text} />
+        <TouchableOpacity style={dynamicStyles.notificationButton}>
+          <Ionicons name="notifications-outline" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color={Colors.light.icon} />
-        <Text style={styles.searchText}>Search for massage types...</Text>
+      <View style={dynamicStyles.searchContainer}>
+        <Ionicons name="search" size={20} color={colors.icon} />
+        <Text style={dynamicStyles.searchText}>Search for massage types...</Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Popular Services</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cardsContainer}>
+      <View style={dynamicStyles.section}>
+        <Text style={dynamicStyles.sectionTitle}>Popular Services</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={dynamicStyles.cardsContainer}>
           {destacates.map((annuncement) => (
-            <TouchableOpacity key={annuncement.id} style={styles.card}>
-              <Image source={{ uri: annuncement.dicipline.image }} style={styles.cardImage} />
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{annuncement.title}</Text>
-                <View style={styles.cardInfo}>
-                  <Ionicons name="time-outline" size={14} color={Colors.light.icon} />
-                  <Text style={styles.cardInfoText}>{annuncement.duration} min</Text>
+            <TouchableOpacity key={annuncement.id} style={dynamicStyles.card}>
+              <Image source={{ uri: annuncement.dicipline.image }} style={dynamicStyles.cardImage} />
+              <View style={dynamicStyles.cardContent}>
+                <Text style={dynamicStyles.cardTitle}>{annuncement.title}</Text>
+                <View style={dynamicStyles.cardInfo}>
+                  <Ionicons name="time-outline" size={14} color={colors.icon} />
+                  <Text style={dynamicStyles.cardInfoText}>{annuncement.duration} min</Text>
                 </View>
-                <View style={styles.cardFooter}>
-                  <Text style={styles.cardPrice}>{annuncement.price}</Text>
-                  <TouchableOpacity style={styles.bookButton}>
-                    <Text style={styles.bookButtonText}>Book</Text>
+                <View style={dynamicStyles.cardFooter}>
+                  <Text style={dynamicStyles.cardPrice}>{annuncement.price}</Text>
+                  <TouchableOpacity style={dynamicStyles.bookButton}>
+                    <Text style={dynamicStyles.bookButtonText}>Book</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -63,191 +67,39 @@ export default function ClientHomeScreen() {
         </ScrollView>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Why Choose BodyFix?</Text>
-        <View style={styles.featuresGrid}>
-          <View style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="shield-checkmark" size={28} color={Colors.light.primary} />
+      <View style={dynamicStyles.section}>
+        <Text style={dynamicStyles.sectionTitle}>Why Choose BodyFix?</Text>
+        <View style={dynamicStyles.featuresGrid}>
+          <View style={dynamicStyles.featureCard}>
+            <View style={dynamicStyles.featureIcon}>
+              <Ionicons name="shield-checkmark" size={28} color={colors.primary} />
             </View>
-            <Text style={styles.featureTitle}>Certified</Text>
-            <Text style={styles.featureDescription}>All therapists are certified professionals</Text>
+            <Text style={dynamicStyles.featureTitle}>Certified</Text>
+            <Text style={dynamicStyles.featureDescription}>All therapists are certified professionals</Text>
           </View>
-          <View style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="home" size={28} color={Colors.light.primary} />
+          <View style={dynamicStyles.featureCard}>
+            <View style={dynamicStyles.featureIcon}>
+              <Ionicons name="home" size={28} color={colors.primary} />
             </View>
-            <Text style={styles.featureTitle}>At Home</Text>
-            <Text style={styles.featureDescription}>Enjoy comfort in your own space</Text>
+            <Text style={dynamicStyles.featureTitle}>At Home</Text>
+            <Text style={dynamicStyles.featureDescription}>Enjoy comfort in your own space</Text>
           </View>
-          <View style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="star" size={28} color={Colors.light.primary} />
+          <View style={dynamicStyles.featureCard}>
+            <View style={dynamicStyles.featureIcon}>
+              <Ionicons name="star" size={28} color={colors.primary} />
             </View>
-            <Text style={styles.featureTitle}>Top Rated</Text>
-            <Text style={styles.featureDescription}>4.9 average customer rating</Text>
+            <Text style={dynamicStyles.featureTitle}>Top Rated</Text>
+            <Text style={dynamicStyles.featureDescription}>4.9 average customer rating</Text>
           </View>
-          <View style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="calendar" size={28} color={Colors.light.primary} />
+          <View style={dynamicStyles.featureCard}>
+            <View style={dynamicStyles.featureIcon}>
+              <Ionicons name="calendar" size={28} color={colors.primary} />
             </View>
-            <Text style={styles.featureTitle}>Flexible</Text>
-            <Text style={styles.featureDescription}>Book anytime that suits you</Text>
+            <Text style={dynamicStyles.featureTitle}>Flexible</Text>
+            <Text style={dynamicStyles.featureDescription}>Book anytime that suits you</Text>
           </View>
         </View>
       </View>
     </ScrollView>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: Colors.light.text,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.light.icon,
-    marginTop: 4,
-  },
-  notificationButton: {
-    padding: 8,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.light.card,
-    marginHorizontal: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    marginBottom: 24,
-  },
-  searchText: {
-    marginLeft: 12,
-    fontSize: 16,
-    color: Colors.light.icon,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: Colors.light.text,
-    marginHorizontal: 24,
-    marginBottom: 16,
-  },
-  cardsContainer: {
-    paddingLeft: 24,
-  },
-  card: {
-    width: width * 0.7,
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    marginRight: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  cardImage: {
-    width: "100%",
-    height: 160,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  cardContent: {
-    padding: 16,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: Colors.light.text,
-    marginBottom: 8,
-  },
-  cardInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  cardInfoText: {
-    marginLeft: 6,
-    fontSize: 14,
-    color: Colors.light.icon,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  cardPrice: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: Colors.light.primary,
-  },
-  bookButton: {
-    backgroundColor: Colors.light.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  bookButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  featuresGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 24,
-    gap: 12,
-  },
-  featureCard: {
-    width: (width - 60) / 2,
-    backgroundColor: Colors.light.card,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  featureIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#EEF2FF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.light.text,
-    marginBottom: 4,
-  },
-  featureDescription: {
-    fontSize: 12,
-    color: Colors.light.icon,
-    textAlign: "center",
-  },
-})

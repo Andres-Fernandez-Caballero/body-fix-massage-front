@@ -1,42 +1,19 @@
-import { View, Text, StyleSheet } from "react-native"
-import { Colors } from "@/constants/Colors"
+import { View, Text } from "react-native"
+import { useTheme } from "@/contexts/ThemeContext"
+import { getTherapistSessionsStyles } from "@/styles/themedStyles"
 
 export default function TherapistSessionsScreen() {
+  const { colors } = useTheme()
+  const dynamicStyles = getTherapistSessionsStyles(colors)
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Sessions</Text>
+    <View style={dynamicStyles.container}>
+      <View style={dynamicStyles.header}>
+        <Text style={dynamicStyles.title}>Sessions</Text>
       </View>
-      <View style={styles.content}>
-        <Text style={styles.subtitle}>Session management coming soon...</Text>
+      <View style={dynamicStyles.content}>
+        <Text style={dynamicStyles.subtitle}>Session management coming soon...</Text>
       </View>
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: Colors.light.text,
-  },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.light.icon,
-  },
-})

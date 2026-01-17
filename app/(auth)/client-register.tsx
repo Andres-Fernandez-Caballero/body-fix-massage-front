@@ -4,7 +4,6 @@ import { useState } from "react"
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -12,17 +11,21 @@ import {
   ScrollView,
 } from "react-native"
 import { useRouter } from "expo-router"
-import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
+import { useTheme } from "@/contexts/ThemeContext"
+import { getAuthLoginStyles } from "@/styles/themedStyles"
 
 export default function ClientRegisterScreen() {
   const router = useRouter()
+  const { colors } = useTheme()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  
+  const dynamicStyles = getAuthLoginStyles(colors)
 
   const handleRegister = async () => {
     // TODO: Implement API call
@@ -31,35 +34,35 @@ export default function ClientRegisterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
+    <KeyboardAvoidingView style={dynamicStyles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <ScrollView contentContainerStyle={dynamicStyles.scrollContent} bounces={false}>
+        <TouchableOpacity style={dynamicStyles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
 
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Sign up to get started</Text>
+        <View style={dynamicStyles.header}>
+          <Text style={dynamicStyles.title}>Create Account</Text>
+          <Text style={dynamicStyles.subtitle}>Sign up to get started</Text>
         </View>
 
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Full Name</Text>
+        <View style={dynamicStyles.form}>
+          <View style={dynamicStyles.inputContainer}>
+            <Text style={dynamicStyles.label}>Full Name</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="Enter your full name"
-              placeholderTextColor={Colors.light.icon}
+              placeholderTextColor={colors.icon}
               value={name}
               onChangeText={setName}
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+          <View style={dynamicStyles.inputContainer}>
+            <Text style={dynamicStyles.label}>Email</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="Enter your email"
-              placeholderTextColor={Colors.light.icon}
+              placeholderTextColor={colors.icon}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -67,55 +70,55 @@ export default function ClientRegisterScreen() {
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Phone Number</Text>
+          <View style={dynamicStyles.inputContainer}>
+            <Text style={dynamicStyles.label}>Phone Number</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="Enter your phone number"
-              placeholderTextColor={Colors.light.icon}
+              placeholderTextColor={colors.icon}
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.passwordContainer}>
+          <View style={dynamicStyles.inputContainer}>
+            <Text style={dynamicStyles.label}>Password</Text>
+            <View style={dynamicStyles.passwordContainer}>
               <TextInput
-                style={styles.passwordInput}
+                style={dynamicStyles.passwordInput}
                 placeholder="Create a password"
-                placeholderTextColor={Colors.light.icon}
+                placeholderTextColor={colors.icon}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color={Colors.light.icon} />
+                <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color={colors.icon} />
               </TouchableOpacity>
             </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirm Password</Text>
+          <View style={dynamicStyles.inputContainer}>
+            <Text style={dynamicStyles.label}>Confirm Password</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="Confirm your password"
-              placeholderTextColor={Colors.light.icon}
+              placeholderTextColor={colors.icon}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
             />
           </View>
 
-          <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-            <Text style={styles.registerButtonText}>Sign Up</Text>
+          <TouchableOpacity style={dynamicStyles.loginButton} onPress={handleRegister}>
+            <Text style={dynamicStyles.loginButtonText}>Sign Up</Text>
           </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+          <View style={dynamicStyles.footer}>
+            <Text style={dynamicStyles.footerText}>Already have an account? </Text>
             <TouchableOpacity onPress={() => router.push("/(auth)/client-login")}>
-              <Text style={styles.footerLink}>Sign In</Text>
+              <Text style={dynamicStyles.footerLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -123,98 +126,3 @@ export default function ClientRegisterScreen() {
     </KeyboardAvoidingView>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-  },
-  backButton: {
-    marginTop: 60,
-    marginBottom: 20,
-  },
-  header: {
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: Colors.light.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.light.icon,
-  },
-  form: {
-    flex: 1,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.light.text,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: Colors.light.card,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.light.card,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: 16,
-    fontSize: 16,
-  },
-  registerButton: {
-    backgroundColor: Colors.light.primary,
-    borderRadius: 12,
-    paddingVertical: 18,
-    alignItems: "center",
-    marginTop: 8,
-    shadowColor: Colors.light.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  registerButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 24,
-    marginBottom: 40,
-  },
-  footerText: {
-    color: Colors.light.icon,
-    fontSize: 14,
-  },
-  footerLink: {
-    color: Colors.light.primary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-})

@@ -1,7 +1,8 @@
 "use client"
-import { View, Text, StyleSheet, ScrollView } from "react-native"
-import { Colors } from "@/constants/Colors"
+import { View, Text, ScrollView } from "react-native"
+import { useTheme } from "@/contexts/ThemeContext"
 import BookingCard from "@/components/BookingCard"
+import { getClientBookingsStyles } from "@/styles/themedStyles"
 
 const BOOKINGS = [
   {
@@ -44,19 +45,22 @@ const BOOKINGS = [
 ]
 
 export default function BookingsScreen() {
+  const { colors } = useTheme()
   const upcomingBookings = BOOKINGS.filter((b) => b.status === "upcoming")
   const pastBookings = BOOKINGS.filter((b) => b.status !== "upcoming")
+  
+  const dynamicStyles = getClientBookingsStyles(colors)
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Bookings</Text>
+    <View style={dynamicStyles.container}>
+      <View style={dynamicStyles.header}>
+        <Text style={dynamicStyles.title}>My Bookings</Text>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={dynamicStyles.content} showsVerticalScrollIndicator={false}>
         {upcomingBookings.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
+            <Text style={dynamicStyles.sectionTitle}>Upcoming Sessions</Text>
             {upcomingBookings.map((booking) => (
               <BookingCard
                 key={booking.id}
@@ -70,7 +74,7 @@ export default function BookingsScreen() {
 
         {pastBookings.length > 0 && (
           <>
-            <Text style={[styles.sectionTitle, upcomingBookings.length > 0 && { marginTop: 24 }]}>Session History</Text>
+            <Text style={[dynamicStyles.sectionTitle, upcomingBookings.length > 0 && { marginTop: 24 }]}>Session History</Text>
             {pastBookings.map((booking) => (
               <BookingCard key={booking.id} booking={booking} onReview={() => console.log("Review:", booking.id)} />
             ))}
@@ -78,54 +82,12 @@ export default function BookingsScreen() {
         )}
 
         {BOOKINGS.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateTitle}>No bookings yet</Text>
-            <Text style={styles.emptyStateText}>Book your first massage session to get started</Text>
+          <View style={dynamicStyles.emptyState}>
+            <Text style={dynamicStyles.emptyStateTitle}>No bookings yet</Text>
+            <Text style={dynamicStyles.emptyStateText}>Book your first massage session to get started</Text>
           </View>
         )}
       </ScrollView>
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: Colors.light.text,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: Colors.light.text,
-    marginBottom: 16,
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 60,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: Colors.light.text,
-    marginBottom: 8,
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: Colors.light.icon,
-  },
-})

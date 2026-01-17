@@ -1,11 +1,12 @@
 import { Tabs, useRouter } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
-import { Colors } from "@/constants/Colors"
+import { useTheme } from "@/contexts/ThemeContext"
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "expo-router";
 
 export default function ClientLayout() {
   const { authState, user } = useAuth();
+  const { colors } = useTheme();
 
   if (authState !== "authenticated" && user?.role !== "client") {
     return <Redirect href="/" />
@@ -15,11 +16,12 @@ export default function ClientLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.light.primary,
-        tabBarInactiveTintColor: Colors.light.tabIconDefault,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.tabIconDefault,
         tabBarStyle: {
           borderTopWidth: 1,
-          borderTopColor: Colors.light.border,
+          borderTopColor: colors.border,
+          backgroundColor: colors.background,
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
