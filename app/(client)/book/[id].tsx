@@ -4,72 +4,87 @@ import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
 import { useState, useMemo, useEffect } from "react"
 import { useAnnouncements } from "@/hooks/use-announcements"
+import { useTherapistAvailability } from "@/hooks/use-therapist-availability"
+import { Slot } from "@/data/api/therapist-availability"
+import { Announcement } from "@/contracts/models/announcements.interface"
+import { bookingsApi } from "@/data/api/bookings.api"
+import { useBookings } from "@/hooks/use-booking"
 
 const { width } = Dimensions.get("window")
 
-const TIME_SLOTS = [
-    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-    "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-    "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"
-]
 
 export default function BookServiceScreen() {
-    const { id } = useLocalSearchParams()
-    const router = useRouter()
-    const { announcements, loading, refresh } = useAnnouncements()
 
-    const [selectedDate, setSelectedDate] = useState<number>(0) // Index of selected day
-    const [selectedTime, setSelectedTime] = useState<string | null>(null)
+    const { id } = useLocalSearchParams()
+
+    const daysAhead = 14;
+    const { getAnnouncementById } = useAnnouncements()
+    const router = useRouter()
+
+    const [service, setService] = useState<Announcement | null>(null)
+    const [loading, setLoading] = useState(true) // Local loading state
+    const [selectedIndexDate, setSelectedIndexDate] = useState<number>(0) // Index of selected day
+    const [selectedTime, setSelectedTime] = useState<Slot | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     useEffect(() => {
-        if (!announcements.length) {
-            refresh();
+        const fetchService = async () => {
+            if (id) {
+                setLoading(true)
+                const data = await getAnnouncementById(Number(id))
+                if (data) {
+                    setService(data)
+                }
+                setLoading(false)
+            }
         }
-    }, [])
+        fetchService()
+    }, [id])
 
-    const service = useMemo(() => {
-        return announcements.find(a => a.id.toString() === id)
-    }, [announcements, id])
 
-    // Generate next 14 days
-    const nextDays = useMemo(() => {
-        const days = []
-        const today = new Date()
-        for (let i = 0; i < 14; i++) {
-            const date = new Date(today)
-            date.setDate(today.getDate() + i)
-            days.push({
-                dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
-                dayNumber: date.getDate(),
-                fullDate: date,
-                index: i
-            })
-        }
-        return days
-    }, [])
 
-    const handleBook = () => {
+    const { availabilities, dayOfWeek } = useTherapistAvailability(Number(id), daysAhead)
+    const { createBooking } = useBookings()
+
+    const handleBook = async () => {
         if (!selectedTime) {
             Alert.alert("Selection Required", "Please select a time slot for your appointment.")
             return
         }
 
         setIsSubmitting(true)
-        // Simulate API call
-        setTimeout(() => {
+
+        if (!service) {
+            Alert.alert("Service not found", "Please try again later.")
+            return
+        }
+
+        try {
+            await createBooking({
+                announcementId: Number(id),
+                therapistId: service?.therapist.id,
+                date: selectedDateObj.date,
+                startTime: selectedTime.startTime,
+                endTime: selectedTime.endTime,
+                notes: ""
+            })
+        } catch (e) {
+            Alert.alert("Error", "Failed to create booking.")
             setIsSubmitting(false)
-            Alert.alert(
-                "Booking Confirmed!",
-                "Your appointment has been successfully scheduled.",
-                [
-                    { text: "OK", onPress: () => router.push("/(client)/bookings") }
-                ]
-            )
-        }, 1500)
+            return
+        }
+
+        setIsSubmitting(false)
+        Alert.alert(
+            "Booking Confirmed!",
+            "Your appointment has been successfully scheduled.",
+            [
+                { text: "OK", onPress: () => router.push("/(client)/bookings") }
+            ]
+        )
     }
 
-    if (loading && !service) {
+    if (loading) {
         return (
             <View style={styles.loadingContainer}>
                 <Text>Loading service details...</Text>
@@ -88,12 +103,7 @@ export default function BookServiceScreen() {
         )
     }
 
-    const selectedDateObj = nextDays[selectedDate].fullDate
-    const formattedDate = selectedDateObj.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric'
-    })
+    const selectedDateObj = availabilities[selectedIndexDate] ?? { date: new Date(), slots: [] }
 
     return (
         <View style={styles.container}>
@@ -128,33 +138,33 @@ export default function BookServiceScreen() {
                 {/* Calendar Section */}
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>Select Date</Text>
-                    <Text style={styles.selectedDateText}>{formattedDate}</Text>
+                    <Text style={styles.selectedDateText}>{selectedDateObj.date.toDateString()}</Text>
 
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.calendarScroll}
                     >
-                        {nextDays.map((day) => (
+                        {availabilities.map((day, index) => (
                             <TouchableOpacity
-                                key={day.index}
+                                key={day.date.toDateString()}
                                 style={[
                                     styles.dayCard,
-                                    selectedDate === day.index && styles.dayCardActive
+                                    selectedIndexDate === index && styles.dayCardActive
                                 ]}
                                 onPress={() => {
-                                    setSelectedDate(day.index)
+                                    setSelectedIndexDate(index)
                                     setSelectedTime(null) // Reset time when date changes
                                 }}
                             >
                                 <Text style={[
                                     styles.dayName,
-                                    selectedDate === day.index && styles.dayNameActive
-                                ]}>{day.dayName}</Text>
+                                    selectedIndexDate === index && styles.dayNameActive
+                                ]}>{dayOfWeek[day.dayOfWeek]}</Text>
                                 <Text style={[
                                     styles.dayNumber,
-                                    selectedDate === day.index && styles.dayNumberActive
-                                ]}>{day.dayNumber}</Text>
+                                    selectedIndexDate === index && styles.dayNumberActive
+                                ]}>{day.date.getDate().toString().padStart(2, '0')}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
@@ -164,7 +174,7 @@ export default function BookServiceScreen() {
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>Available Slots</Text>
                     <View style={styles.timeGrid}>
-                        {TIME_SLOTS.map((time, index) => (
+                        {selectedDateObj.slots.map((time, index) => (
                             <TouchableOpacity
                                 key={index}
                                 style={[
@@ -176,7 +186,7 @@ export default function BookServiceScreen() {
                                 <Text style={[
                                     styles.timeText,
                                     selectedTime === time && styles.timeTextActive
-                                ]}>{time}</Text>
+                                ]}>{time.startTime} a {time.endTime}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>

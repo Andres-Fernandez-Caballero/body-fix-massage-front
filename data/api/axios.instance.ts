@@ -1,4 +1,4 @@
-import { secureGet } from '@/lib/store';
+import { secureDelete, secureGet } from '@/lib/store';
 import axios, { AxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
@@ -55,7 +55,7 @@ axiosInstance.interceptors.response.use(
 
         if (status === 401) {
             // token inválido o expirado
-            await SecureStore.deleteItemAsync('authToken');
+            await secureDelete('authToken');
             // acá normalmente disparás logout / redirect
         }
 
