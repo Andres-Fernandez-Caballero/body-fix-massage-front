@@ -1,66 +1,61 @@
+// data/api/axios.instance.ts
+import axios from 'axios';
 import { secureDelete, secureGet } from '@/lib/store';
-import axios, { AxiosRequestConfig } from 'axios';
-import * as SecureStore from 'expo-secure-store';
+// import { router } from 'expo-router'; // si lo usás acá
 
 const API_BASE_URL =
-    process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost';
+  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost';
 
-const axiosInstance = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: 10000,
-    headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-    },
+let isLoggingOut = false;
+
+export const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  },
 });
 
 /* =============================== */
-/*   REQUEST INTERCEPTOR           */
+/* REQUEST INTERCEPTOR             */
 /* =============================== */
 axiosInstance.interceptors.request.use(
-    async (config) => {
-        console.log(config);
-        const token = await secureGet('authToken');
+  async (config) => {
+    const token = await secureGet('authToken');
 
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        } else {
-            delete config.headers.Authorization;
-        }
-
-        return config;
-    },
-    (error) => {
-        console.log(error);
-        return Promise.reject(error);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      delete config.headers.Authorization;
     }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
 /* =============================== */
-/*   RESPONSE INTERCEPTOR          */
+/* RESPONSE INTERCEPTOR            */
 /* =============================== */
 axiosInstance.interceptors.response.use(
-    
-    (response) => {
-        console.log('response', response)
-        return response
-    },
-    async (error) => {
-        console.log('RESPONSE ERROR', {
-            status: error?.response?.status,
-            data: error?.response?.data,
-            url: error?.config?.url,
-        });
-        const status = error?.response?.status;
+  (response) => response,
+  async (error) => {
+    const status = error?.response?.status;
 
-        if (status === 401) {
-            // token inválido o expirado
-            await secureDelete('authToken');
-            // acá normalmente disparás logout / redirect
-        }
+    // --- 401 → logout automático ---
+    if (status === 401 && !isLoggingOut) {
+      isLoggingOut = true;
 
-        return Promise.reject(error);
+      await secureDelete('authToken');
+
+      // 🔴 elegí una sola estrategia:
+      // router.replace('/(auth)/login');
+      // o emitir un evento global de logout
+
+      isLoggingOut = false;
     }
-);
 
-export default axiosInstance;
+    return Promise.reject(error);
+  }
+);

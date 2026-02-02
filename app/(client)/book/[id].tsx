@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, StatusBar } from "react-native"
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, StatusBar } from "react-native"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
@@ -9,6 +9,7 @@ import { Slot } from "@/data/api/therapist-availability"
 import { Announcement } from "@/contracts/models/announcements.interface"
 import { bookingsApi } from "@/data/api/bookings.api"
 import { useBookings } from "@/hooks/use-booking"
+import AwesomeAlert from 'react-native-awesome-alerts';
 
 const { width } = Dimensions.get("window")
 
@@ -47,41 +48,45 @@ export default function BookServiceScreen() {
     const { createBooking } = useBookings()
 
     const handleBook = async () => {
-        if (!selectedTime) {
-            Alert.alert("Selection Required", "Please select a time slot for your appointment.")
-            return
-        }
 
-        setIsSubmitting(true)
 
-        if (!service) {
-            Alert.alert("Service not found", "Please try again later.")
-            return
-        }
 
-        try {
-            await createBooking({
-                announcementId: Number(id),
-                therapistId: service?.therapist.id,
-                date: selectedDateObj.date,
-                startTime: selectedTime.startTime,
-                endTime: selectedTime.endTime,
-                notes: ""
-            })
-        } catch (e) {
-            Alert.alert("Error", "Failed to create booking.")
-            setIsSubmitting(false)
-            return
-        }
+        // Alert.alert("Booking", "Booking confirmed!")
+        // if (!selectedTime) {
+        //     Alert.alert("Selection Required", "Please select a time slot for your appointment.")
+        //     return
+        // }
 
-        setIsSubmitting(false)
-        Alert.alert(
-            "Booking Confirmed!",
-            "Your appointment has been successfully scheduled.",
-            [
-                { text: "OK", onPress: () => router.push("/(client)/bookings") }
-            ]
-        )
+        // setIsSubmitting(true)
+
+        // if (!service) {
+        //     Alert.alert("Service not found", "Please try again later.")
+        //     return
+        // }
+
+        // try {
+        //     await createBooking({
+        //         announcementId: Number(id),
+        //         therapistId: service?.therapist.id,
+        //         date: selectedDateObj.date,
+        //         startTime: selectedTime.startTime,
+        //         endTime: selectedTime.endTime,
+        //         notes: ""
+        //     })
+        // } catch (e) {
+        //     Alert.alert("Error", "Failed to create booking.")
+        //     setIsSubmitting(false)
+        //     return
+        // }
+
+        // setIsSubmitting(false)
+        // Alert.alert(
+        //     "Booking Confirmed!",
+        //     "Your appointment has been successfully scheduled.",
+        //     [
+        //         { text: "OK", onPress: () => router.push("/(client)/bookings") }
+        //     ]
+        // )
     }
 
     if (loading) {
@@ -107,6 +112,7 @@ export default function BookServiceScreen() {
 
     return (
         <View style={styles.container}>
+            
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
@@ -114,7 +120,7 @@ export default function BookServiceScreen() {
                 <Text style={styles.headerTitle}>Select Time</Text>
                 <View style={{ width: 24 }} />
             </View>
-
+            
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {/* Service Summary Card */}
                 <View style={styles.serviceCard}>
@@ -203,10 +209,11 @@ export default function BookServiceScreen() {
                 <TouchableOpacity
                     style={[
                         styles.confirmButton,
-                        (!selectedTime || isSubmitting) && styles.confirmButtonDisabled
+                        // (!selectedTime || isSubmitting) && styles.confirmButtonDisabled
                     ]}
                     onPress={handleBook}
-                    disabled={!selectedTime || isSubmitting}
+                // disabled={!selectedTime || isSubmitting}
+
                 >
                     <Text style={styles.confirmButtonText}>
                         {isSubmitting ? "Booking..." : "Confirm Booking"}

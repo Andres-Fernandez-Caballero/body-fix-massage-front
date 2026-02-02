@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from "react-native"
 import { Colors } from "@/constants/Colors"
 import BookingCard from "@/components/BookingCard"
 
+// TODO: Eliminar bookings de prueba y cargar datos del servidor
 const BOOKINGS = [
   {
     id: "1",

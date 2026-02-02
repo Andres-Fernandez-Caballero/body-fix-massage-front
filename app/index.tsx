@@ -1,5 +1,13 @@
 "use client"
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from "react-native"
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Dimensions,
+  Platform,
+} from "react-native"
 import { useRouter } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "@/constants/Colors"
@@ -12,9 +20,62 @@ export default function WelcomeScreen() {
   const router = useRouter()
   const { authState, user } = useAuth()
 
+  /* ===========================
+     Service Worker (WEB)
+     =========================== */
+  useEffect(() => {
+    if (Platform.OS !== "web") return
+    if (!("serviceWorker" in navigator)) return
+
+    let handler: any
+
+    async function setupSW() {
+      // 1️⃣ Registrar
+      await navigator.serviceWorker.register("/sw.js")
+      console.log("Service Worker registered")
+
+      // 2️⃣ Esperar activo
+      const reg = await navigator.serviceWorker.ready
+
+      // 3️⃣ Enviar token si existe
+      const token = localStorage.getItem("auth_token")
+      if (token && reg.active) {
+        reg.active.postMessage({
+          type: "SET_AUTH_TOKEN",
+          token,
+        })
+      }
+
+      // 4️⃣ Escuchar mensajes
+      handler = (event: MessageEvent) => {
+        if (event.data?.type === "NEW_NOTIFICATION") {
+          alert(event.data.payload.title)
+        }
+      }
+
+      navigator.serviceWorker.addEventListener("message", handler)
+    }
+
+    setupSW()
+
+    // cleanup
+    return () => {
+      if (handler) {
+        navigator.serviceWorker.removeEventListener("message", handler)
+      }
+    }
+  }, [])
+
+  /* ===========================
+     Auth redirect
+     =========================== */
   useEffect(() => {
     if (authState === "authenticated") {
-      router.replace(user?.role === "massage_therapist" ? "(therapist)/dashboard" : "(client)/home")
+      router.replace(
+        user?.role === "massage_therapist"
+          ? "(therapist)/dashboard"
+          : "(client)/home"
+      )
     }
   }, [authState, user])
 
@@ -29,18 +90,34 @@ export default function WelcomeScreen() {
         <View style={styles.content}>
           <View style={styles.logoContainer}>
             <Text style={styles.logo}>BodyFix</Text>
-            <Text style={styles.tagline}>Professional Massage at Home</Text>
+            <Text style={styles.tagline}>
+              Professional Massage at Home
+            </Text>
           </View>
 
-          <Image source={{ uri: "/relaxing-spa-massage-therapy-illustration.jpg" }} style={styles.illustration} resizeMode="contain" />
+          <Image
+            source={{ uri: "/relaxing-spa-massage-therapy-illustration.jpg" }}
+            style={styles.illustration}
+            resizeMode="contain"
+          />
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.primaryButton} onPress={() => router.push("/(auth)/client-login")}>
-              <Text style={styles.primaryButtonText}>Book a Massage</Text>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => router.push("/(auth)/client-login")}
+            >
+              <Text style={styles.primaryButtonText}>
+                Book a Massage
+              </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push("/(auth)/therapist-login")}>
-              <Text style={styles.secondaryButtonText}>I'm a Therapist</Text>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => router.push("/(auth)/therapist-login")}
+            >
+              <Text style={styles.secondaryButtonText}>
+                I'm a Therapist
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -63,6 +140,7 @@ export default function WelcomeScreen() {
     </View>
   )
 }
+
 
 const styles = StyleSheet.create({
   container: {

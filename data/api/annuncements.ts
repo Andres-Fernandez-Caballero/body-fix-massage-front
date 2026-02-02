@@ -1,5 +1,5 @@
 import { Announcement } from "@/contracts/models/announcements.interface";
-import axiosInstance from "./axios.instance";
+import {axiosInstance} from "./axios.instance";
 
 interface AnnuncementsResponse {
     data: Announcement[];
