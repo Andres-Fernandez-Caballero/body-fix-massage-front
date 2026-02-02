@@ -2,126 +2,69 @@
    Service Worker – Web Push
    =========================== */
 
-/**
- * IndexedDB helper
- */
-importScripts('https://unpkg.com/idb-keyval@6/dist/idb-keyval.iife.js');
-
-/**
- * Instalar inmediato
- */
-self.addEventListener('install', e => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-/**
- * Activar inmediato
- */
-self.addEventListener('activate', e => {
-  e.waitUntil(self.clients.claim());
+self.addEventListener('activate', event => {
+  event.waitUntil(self.clients.claim());
 });
 
-/**
- * PUSH = SIGNAL
- */
 self.addEventListener('push', event => {
-  event.waitUntil(handlePush());
+  event.waitUntil(handlePush(event));
 });
 
-/**
- * Manejar push
- */
-async function handlePush() {
-
+async function handlePush(event) {
   try {
-
-    // 🔐 Leer token desde IndexedDB
-    const token = await idbKeyval.get('auth_token');
-
-    if (!token) {
-      console.warn('[SW] No auth token');
+    if (!event.data) {
+      console.warn('[SW] Push sin payload');
       return;
     }
 
-    // 🌐 Llamar a Laravel
-    const res = await fetch(
-      'https://localhost/api/notifications',
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        method: 'GET',
-      }
-    );
+    const payload = event.data.json();
+    const data = payload.data || payload;
 
-    if (res.status === 401) {
-      console.warn('[SW] Token expirado');
-      return;
-    }
-
-    if (!res.ok) {
-      console.error('[SW] API error', res.status);
-      return;
-    }
-
-    const notif = await res.json();
-
-    if (!notif || !notif.data) return;
-
-    // 📬 Datos reales
-    const title = notif.data.title ?? 'Notificación';
+    const title = data.title || 'BodyFix';
 
     const options = {
-      body: notif.data.body ?? '',
+      body: data.body || '',
       icon: '/icon.png',
       badge: '/icon.png',
-
       data: {
-        id: notif.id,
-        url: notif.data.url ?? '/',
+        id: data.id,
+        url: data.url || '/',
       },
-
       vibrate: [100, 50, 100],
     };
 
-    console.log('Mostrando notificación', options);
-    // 🔔 Mostrar
+    // ✅ UNA sola notificación
     await self.registration.showNotification(title, options);
+
+    // Avisar a la app (si está abierta)
+    const clientsList = await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true,
+    });
+
+    for (const client of clientsList) {
+      client.postMessage({
+        type: 'NEW_NOTIFICATION',
+        payload: {
+          title,
+          body: options.body,
+          data: options.data,
+        },
+      });
+    }
 
   } catch (err) {
     console.error('[SW] Push error:', err);
   }
 }
 
-/**
- * Click en notificación
- */
 self.addEventListener('notificationclick', event => {
-
   event.notification.close();
-
-  const url = event.notification.data?.url || '/';
-
-  event.waitUntil(openOrFocus(url));
+  event.waitUntil(
+    self.clients.openWindow(event.notification.data?.url || '/')
+  );
 });
-
-/**
- * Abrir o enfocar ventana
- */
-async function openOrFocus(url) {
-
-  const clientsList = await clients.matchAll({
-    type: 'window',
-    includeUncontrolled: true,
-  });
-
-  for (const client of clientsList) {
-    if (client.url === url && 'focus' in client) {
-      return client.focus();
-    }
-  }
-
-  return clients.openWindow(url);
-}

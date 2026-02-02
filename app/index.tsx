@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "@/constants/Colors"
 import { useAuth } from "@/hooks/use-auth"
 import { useEffect } from "react"
+import { secureGet } from "@/lib/store"
 
 const { width, height } = Dimensions.get("window")
 
@@ -30,15 +31,14 @@ export default function WelcomeScreen() {
     let handler: any
 
     async function setupSW() {
-      // 1️⃣ Registrar
+      // 1️⃣ Registrar (o actualizar)
       await navigator.serviceWorker.register("/sw.js")
-      console.log("Service Worker registered")
 
       // 2️⃣ Esperar activo
       const reg = await navigator.serviceWorker.ready
 
-      // 3️⃣ Enviar token si existe
-      const token = localStorage.getItem("auth_token")
+      // 3️⃣ Enviar token si existe (Corregido: key es 'authToken')
+      const token = await secureGet("authToken")
       if (token && reg.active) {
         reg.active.postMessage({
           type: "SET_AUTH_TOKEN",
@@ -46,10 +46,13 @@ export default function WelcomeScreen() {
         })
       }
 
-      // 4️⃣ Escuchar mensajes
+      // 4️⃣ Escuchar mensajes del SW (Alerta "Por Dentro")
       handler = (event: MessageEvent) => {
         if (event.data?.type === "NEW_NOTIFICATION") {
-          alert(event.data.payload.title)
+          const { title, body } = event.data.payload
+          // Aquí idealmente usarías un Toast o Modal custom
+          // Por ahora usamos alert como fallback
+          alert(`${title}\n${body}`)
         }
       }
 
@@ -65,6 +68,7 @@ export default function WelcomeScreen() {
       }
     }
   }, [])
+
 
   /* ===========================
      Auth redirect
