@@ -6,17 +6,19 @@ import { Ionicons } from "@expo/vector-icons"
 import { useAuth } from "@/hooks/use-auth"
 import { useEffect, useState } from "react"
 import { annuncementsApi } from "@/data/api/annuncements"
-import { Announcement } from "@/contracts/models/announcements.interface"
 import { useAnnouncements } from "@/hooks/use-announcements"
+import { useNotifications } from "@/hooks/use-notifications"
+import { NotificationSidebar } from "@/components/NotificationSidebar"
 
 const { width } = Dimensions.get("window")
-
 
 
 export default function ClientHomeScreen() {
   const router = useRouter()
   const { user } = useAuth()
-  const {destacates, loading, error, refresh} = useAnnouncements()
+  const { destacates, loading, error, refresh } = useAnnouncements()
+  const { unreadCount } = useNotifications()
+  const [showNotifications, setShowNotifications] = useState(false)
 
   useEffect(() => {
     refresh()
@@ -29,8 +31,18 @@ export default function ClientHomeScreen() {
           <Text style={styles.greeting}>Hello, {user?.name}</Text>
           <Text style={styles.subtitle}>How can we help you relax today?</Text>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
+        <TouchableOpacity
+          style={styles.notificationButton}
+          onPress={() => setShowNotifications(true)}
+        >
           <Ionicons name="notifications-outline" size={24} color={Colors.light.text} />
+          {unreadCount > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -96,6 +108,11 @@ export default function ClientHomeScreen() {
           </View>
         </View>
       </View>
+
+      <NotificationSidebar
+        visible={showNotifications}
+        onClose={() => setShowNotifications(false)}
+      />
     </ScrollView>
   )
 }
@@ -248,6 +265,27 @@ const styles = StyleSheet.create({
   featureDescription: {
     fontSize: 12,
     color: Colors.light.icon,
+    textAlign: "center",
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#FF3B30",
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+    zIndex: 10,
+    paddingHorizontal: 2,
+  },
+  notificationBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
     textAlign: "center",
   },
 })

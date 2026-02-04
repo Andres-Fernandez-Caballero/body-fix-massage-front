@@ -4,16 +4,26 @@ import { Stack } from "expo-router"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { useEffect } from "react"
+import { useAuth } from "@/hooks/use-auth"
+import { useNotifications } from "@/hooks/use-notifications"
 
 export default function RootLayout() {
 
 
   const { registerForPushNotificationsAsync, notification } = usePushNotifications();
   const { toast } = useToast();
+  const { authState } = useAuth();
+  const { loadNotifications } = useNotifications();
 
   useEffect(() => {
     registerForPushNotificationsAsync();
   }, []);
+
+  useEffect(() => {
+    if (authState === "authenticated") {
+      loadNotifications();
+    }
+  }, [authState]);
 
   useEffect(() => {
     if (notification) {

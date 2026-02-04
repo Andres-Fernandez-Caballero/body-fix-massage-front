@@ -37,7 +37,7 @@ async function handlePush(event) {
       vibrate: [100, 50, 100],
     };
 
-    // ✅ UNA sola notificación
+    // ✅ Mostrar notificación fuera de la app
     await self.registration.showNotification(title, options);
 
     // Avisar a la app (si está abierta)

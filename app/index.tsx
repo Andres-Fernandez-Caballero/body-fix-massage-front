@@ -12,6 +12,7 @@ import { useRouter } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "@/constants/Colors"
 import { useAuth } from "@/hooks/use-auth"
+import { useNotifications } from "@/hooks/use-notifications"
 import { useEffect } from "react"
 import { secureGet } from "@/lib/store"
 
@@ -20,6 +21,7 @@ const { width, height } = Dimensions.get("window")
 export default function WelcomeScreen() {
   const router = useRouter()
   const { authState, user } = useAuth()
+  const { loadNotifications } = useNotifications()
 
   /* ===========================
      Service Worker (WEB)
@@ -50,17 +52,18 @@ export default function WelcomeScreen() {
       handler = (event: MessageEvent) => {
         if (event.data?.type === "NEW_NOTIFICATION") {
           const { title, body } = event.data.payload
-          // Aquí idealmente usarías un Toast o Modal custom
-          // Por ahora usamos alert como fallback
-          alert(`${title}\n${body}`)
+          console.log("EVENTO PUSH", title)
+          // Evento push recibido
+          loadNotifications().then()
         }
       }
-
+      
       navigator.serviceWorker.addEventListener("message", handler)
+      loadNotifications().then()
     }
-
+    
     setupSW()
-
+    
     // cleanup
     return () => {
       if (handler) {
@@ -68,21 +71,21 @@ export default function WelcomeScreen() {
       }
     }
   }, [])
-
-
+  
+  
   /* ===========================
-     Auth redirect
-     =========================== */
+  Auth redirect
+  =========================== */
   useEffect(() => {
     if (authState === "authenticated") {
       router.replace(
         user?.role === "massage_therapist"
-          ? "(therapist)/dashboard"
-          : "(client)/home"
+        ? "(therapist)/dashboard"
+        : "(client)/home"
       )
     }
   }, [authState, user])
-
+  
   return (
     <View style={styles.container}>
       <LinearGradient
