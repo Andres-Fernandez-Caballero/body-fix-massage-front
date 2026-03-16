@@ -3,49 +3,38 @@ import { View, Text, StyleSheet, ScrollView } from "react-native"
 import { Colors } from "@/constants/Colors"
 import BookingCard from "@/components/BookingCard"
 
-const BOOKINGS = [
-  {
-    id: "1",
-    therapistName: "Sarah Johnson",
-    massageType: "Swedish Massage",
-    date: "Jan 15, 2026",
-    time: "2:00 PM",
-    status: "upcoming" as const,
-    address: "123 Main St, Apt 4B",
-  },
-  {
-    id: "2",
-    therapistName: "Michael Chen",
-    massageType: "Deep Tissue",
-    date: "Jan 10, 2026",
-    time: "4:30 PM",
-    status: "completed" as const,
-    address: "123 Main St, Apt 4B",
-  },
-  {
-    id: "3",
-    therapistName: "Emily Williams",
-    massageType: "Sports Massage",
-    date: "Jan 5, 2026",
-    time: "10:00 AM",
-    status: "completed" as const,
-    address: "123 Main St, Apt 4B",
-    rating: 5,
-  },
-  {
-    id: "4",
-    therapistName: "David Martinez",
-    massageType: "Prenatal Massage",
-    date: "Dec 28, 2025",
-    time: "3:00 PM",
-    status: "cancelled" as const,
-    address: "123 Main St, Apt 4B",
-  },
-]
+
+import { useEffect } from "react"
+import { useBookings } from "@/hooks/use-bookings"
+import { ActivityIndicator } from "react-native"
 
 export default function BookingsScreen() {
-  const upcomingBookings = BOOKINGS.filter((b) => b.status === "upcoming")
-  const pastBookings = BOOKINGS.filter((b) => b.status !== "upcoming")
+  const { bookings, loading, fetchBookings } = useBookings()
+
+  useEffect(() => {
+    fetchBookings()
+  }, [fetchBookings])
+
+  const mappedBookings = bookings.map((b) => ({
+    id: b.id,
+    therapistName: `Therapist #${b.therapistId}`, // TODO: API should return therapist name
+    massageType: `Service #${b.announcementId}`, // TODO: API should return announcement title
+    date: b.date,
+    time: `${b.startTime} - ${b.endTime}`,
+    status: b.state.name as "upcoming" | "completed" | "cancelled",
+    address: "Location details", // TODO: API should return address
+  }))
+
+  const upcomingBookings = mappedBookings.filter((b) => b.status === "upcoming")
+  const pastBookings = mappedBookings.filter((b) => b.status !== "upcoming")
+
+  if (loading && bookings.length === 0) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -77,7 +66,7 @@ export default function BookingsScreen() {
           </>
         )}
 
-        {BOOKINGS.length === 0 && (
+        {bookings.length === 0 && !loading && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateTitle}>No bookings yet</Text>
             <Text style={styles.emptyStateText}>Book your first massage session to get started</Text>
@@ -127,5 +116,9 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 14,
     color: Colors.light.icon,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 })
