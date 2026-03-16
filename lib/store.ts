@@ -20,7 +20,6 @@ async function secureGet(key: string) {
 async function secureDelete(key: string) { 
     console.log("plataforma", Platform.OS)
     if (Platform.OS === 'web') {
-        console.log("eliminando key", key);
         localStorage.removeItem(key);
     } else {
         await SecureStore.deleteItemAsync(key);

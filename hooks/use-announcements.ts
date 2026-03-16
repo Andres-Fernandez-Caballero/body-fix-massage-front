@@ -23,7 +23,6 @@ export function useAnnouncements() {
             setLoading(false);
         }
     }, []);
-
     const fetchDestacates = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -53,10 +52,27 @@ export function useAnnouncements() {
             setLoading(false);
         }
     }, []);
+
+    const getAnnouncementById = useCallback(async (id: number) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await annuncementsApi.getAnnuncementsById(id);
+            return response.data.data;
+        } catch (err) {
+            setError('Error fetching announcement');
+            console.error(err);
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchAnnouncements();
         fetchDestacates();
     }, [fetchAnnouncements, fetchDestacates]);
+
     return {
         announcements,
         destacates,

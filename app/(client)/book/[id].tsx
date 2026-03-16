@@ -17,7 +17,11 @@ const AvailabilitySelector = () => (
 )
 
 export default function BookServiceScreen() {
+
     const { id } = useLocalSearchParams()
+
+    const daysAhead = 14;
+    const { getAnnouncementById } = useAnnouncements()
     const router = useRouter()
     const { fetchAnnouncementById, currentAnnouncement, loading } = useAnnouncements()
     const { fetchAvailability, availabilities, loading: availabilityLoading, selectAvailability, currentAvailability } = useAvailability()
@@ -100,6 +104,7 @@ export default function BookServiceScreen() {
 
     return (
         <View style={styles.container}>
+            
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
@@ -107,7 +112,7 @@ export default function BookServiceScreen() {
                 <Text style={styles.headerTitle}>Select Time</Text>
                 <View style={{ width: 24 }} />
             </View>
-
+            
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {/* Service Summary Card */}
                 <View style={styles.serviceCard}>
@@ -138,6 +143,7 @@ export default function BookServiceScreen() {
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.calendarScroll}
                     >
+                        {availabilities.map((day, index) => (
                         {availabilities.map((day, index) => (
                             <TouchableOpacity
                                 key={index}

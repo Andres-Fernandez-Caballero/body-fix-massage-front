@@ -1,8 +1,11 @@
 import { LoginSchemaType } from "@/contracts/schemas/auth/LoginSchema";
 import { authApi } from "@/data/api/auth.api";
 import { useAuthStore } from "@/data/store/auth.storage";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { secureSafe, secureGet, secureDelete } from "@/lib/store";
+import { parseApiError } from "@/data/api/api-errors";
+import { Platform } from "react-native";
+import { NotificationApi } from "@/data/api/notifications.api";
 
 
 
@@ -19,7 +22,7 @@ export function useAuth() {
     (async () => {
       const token = await secureGet("authToken");
       const user = await secureGet("user");
-      
+
 
       if (token) setToken(token);
       if (user) {
@@ -31,49 +34,61 @@ export function useAuth() {
     })();
   }, []);
 
-  const login = async (data: LoginSchemaType): Promise<'authenticated' | 'unauthorized' | 'processing' | 'error'> => {
-    setAuthState("processing");
-    setErrors([]);
+  const login = useCallback(
+    async (data: LoginSchemaType): Promise<'authenticated' | 'unauthorized' | 'processing' | 'error'> => {
+      setAuthState("processing");
+      setErrors([]);
 
-    try {
-      const response = await authApi.login(data);
+      try {
+        const response = await authApi.login(data);
 
-      const { token, user } = response.data;
+        const { token, user } = response.data;
 
-      await secureSafe("authToken", token);
-      await secureSafe("user", JSON.stringify(user));
+        await secureSafe("authToken", token);
+        await secureSafe("user", JSON.stringify(user));
 
-      setToken(token);
-      setUser(user);
-      setAuthState("authenticated");
-      return "authenticated";
+        setToken(token);
+        setUser(user);
+        setAuthState("authenticated");
+        
+        if (Platform.OS === "web") {
+          try {
+            await NotificationApi.registerWebPush();
+          } catch (error) {
+            console.error("Failed to register web push notifications:", error);
+          }
+        }
+        return "authenticated";
 
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        setErrors(["Invalid credentials"]);
-      } else {
-        setErrors(["Server error"]);
+      } catch (error: any) {
+        const apiError = parseApiError(error);
+        setErrors([apiError.message]);
+        setAuthState("error");
+        return 'unauthorized'
       }
-      setAuthState("error");
-      return 'unauthorized'
-    }
 
-  };
+    }, []
+  )
 
-  const logout = async () => {
-    setAuthState("processing");
-    try {
-      await authApi.logout();
-    } catch (error: any) {
-      setAuthState("error");
-    }finally{
-      await secureDelete("authToken");
-      await secureDelete("user");
-      setAuthState("unauthorized");
-      setToken("");
-      clearUser();
-    }
-  };
+  const logout = useCallback(
+    async () => {
+      setAuthState("processing");
+      try {
+        await authApi.logout();
+      } catch (error: any) {
+        const apiError = parseApiError(error);
+        setErrors([apiError.message]);
+        setAuthState("error");
+        throw apiError;
+      } finally {
+        await secureDelete("authToken");
+        await secureDelete("user");
+        setAuthState("unauthorized");
+        setToken("");
+        clearUser();
+      }
+    }, []
+  );
 
   return {
     login,
