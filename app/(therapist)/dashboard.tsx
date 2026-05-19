@@ -2,8 +2,11 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
-
+import { NotificationSidebar } from "@/components/LayoutWithNotifications/NotificationSidebar"
+import { NotificationButton } from "@/components/LayoutWithNotifications/NotificationButton"
+import { useNotificationState } from "@/components/LayoutWithNotifications/use-notification-state"
 export default function TherapistDashboardScreen() {
+  const { showNotifications, onOpen, onClose, unreadCount } = useNotificationState()
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
@@ -11,10 +14,10 @@ export default function TherapistDashboardScreen() {
           <Text style={styles.greeting}>Welcome back, Sarah</Text>
           <Text style={styles.subtitle}>Here's your activity today</Text>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color={Colors.light.text} />
-          <View style={styles.badge} />
-        </TouchableOpacity>
+        <NotificationButton
+          onOpen={onOpen}
+          unreadCount={unreadCount}
+        />
       </View>
 
       <View style={styles.statsContainer}>
@@ -117,6 +120,10 @@ export default function TherapistDashboardScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      <NotificationSidebar
+        showNotifications={showNotifications}
+        onClose={onClose}
+      />
     </ScrollView>
   )
 }

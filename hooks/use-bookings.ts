@@ -3,16 +3,16 @@ import { bookingsApi, CreateBookingRequest } from '@/data/api/bookings.api';
 import { useBookingsStore } from '@/data/store/bookings.storage';
 
 export function useBookings() {
-    const { 
-        bookings, 
-        loading, 
+    const {
+        bookings,
+        loading,
         isCreating,
-        error, 
-        setBookings, 
-        addBooking, 
-        setLoading, 
+        error,
+        setBookings,
+        addBooking,
+        setLoading,
         setIsCreating,
-        setError 
+        setError
     } = useBookingsStore();
 
     const fetchBookings = useCallback(async () => {

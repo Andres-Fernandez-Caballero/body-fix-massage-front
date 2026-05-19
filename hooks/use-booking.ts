@@ -1,6 +1,6 @@
 // hooks/use-bookings.ts
 import { useState, useCallback } from 'react';
-import { bookingsApi, BookingCreateRequest } from '@/data/api/bookings.api';
+import { bookingsApi, CreateBookingRequest } from '@/data/api/bookings.api';
 import { parseApiError, ApiError } from '@/data/api/api-errors';
 
 export interface CreateDateForm {
@@ -23,7 +23,7 @@ export function useBookings() {
     try {
       const isoDate = data.date.toISOString().split('T')[0];
 
-      const payload: BookingCreateRequest = {
+      const payload: CreateBookingRequest = {
         announcementId: data.announcementId,
         therapistId: data.therapistId,
         date: isoDate,
@@ -32,7 +32,9 @@ export function useBookings() {
         notes: data.notes,
       };
 
-      const response = await bookingsApi.createBooking(payload);
+
+
+      const response = await bookingsApi.makeBooking(payload);
       return response.data;
     } catch (e) {
       const apiError = parseApiError(e);

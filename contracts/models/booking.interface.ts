@@ -15,3 +15,4 @@ export interface Booking {
     createdAt?: string,
     updatedAt?: string
 }
+

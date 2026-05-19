@@ -1,50 +1,37 @@
 "use client"
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from "react-native"
-import { useRouter } from "expo-router"
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  Image, 
+  Dimensions } from "react-native"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
 import { useAuth } from "@/hooks/use-auth"
-import { useEffect, useState } from "react"
-import { annuncementsApi } from "@/data/api/annuncements"
+import { useEffect } from "react"
 import { useAnnouncements } from "@/hooks/use-announcements"
-import { useNotifications } from "@/hooks/use-notifications"
-import { NotificationSidebar } from "@/components/NotificationSidebar"
-
+import { LayoutWithNotifications } from "@/components/LayoutWithNotifications"
 const { width } = Dimensions.get("window")
 
 
 export default function ClientHomeScreen() {
-  const router = useRouter()
   const { user } = useAuth()
   const { destacates, loading, error, refresh } = useAnnouncements()
-  const { unreadCount } = useNotifications()
-  const [showNotifications, setShowNotifications] = useState(false)
-
   useEffect(() => {
     refresh()
   }, [])
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
+    <LayoutWithNotifications
+      headerView={
         <View>
           <Text style={styles.greeting}>Hello, {user?.name}</Text>
           <Text style={styles.subtitle}>How can we help you relax today?</Text>
         </View>
-        <TouchableOpacity
-          style={styles.notificationButton}
-          onPress={() => setShowNotifications(true)}
-        >
-          <Ionicons name="notifications-outline" size={24} color={Colors.light.text} />
-          {unreadCount > 0 && (
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
+      }
+    >
 
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color={Colors.light.icon} />
@@ -108,28 +95,11 @@ export default function ClientHomeScreen() {
           </View>
         </View>
       </View>
-
-      <NotificationSidebar
-        visible={showNotifications}
-        onClose={() => setShowNotifications(false)}
-      />
-    </ScrollView>
+    </LayoutWithNotifications>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
   greeting: {
     fontSize: 28,
     fontWeight: "bold",
@@ -139,9 +109,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.icon,
     marginTop: 4,
-  },
-  notificationButton: {
-    padding: 8,
   },
   searchContainer: {
     flexDirection: "row",
@@ -265,27 +232,6 @@ const styles = StyleSheet.create({
   featureDescription: {
     fontSize: 12,
     color: Colors.light.icon,
-    textAlign: "center",
-  },
-  notificationBadge: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    backgroundColor: "#FF3B30",
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#fff",
-    zIndex: 10,
-    paddingHorizontal: 2,
-  },
-  notificationBadgeText: {
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: "bold",
     textAlign: "center",
   },
 })

@@ -17,10 +17,11 @@ import { Ionicons } from "@expo/vector-icons"
 import { toast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { LoginSchema } from "@/contracts/schemas/auth/LoginSchema"
+import { useAuthStore } from "@/data/store/auth.storage"
 
 export default function TherapistLoginScreen() {
   const router = useRouter()
-  const { login, authState, user, logout } = useAuth()
+  const { login, logout } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -38,11 +39,12 @@ export default function TherapistLoginScreen() {
     }
 
 
-    await login(result.data);
+    const loginResult = await login(result.data);
   
-    if (authState === 'authenticated') {
-      console.log(user)
-      if (user?.role === 'admin'){
+    if (loginResult === 'authenticated') {
+      const currentUser = useAuthStore.getState().user;
+      console.log(currentUser)
+      if (currentUser?.role === 'admin'){
          toast({
         title: "Usuario sin Rol habilitado",
         description: "Este usuario no tiene un rol habilitado para usar la aplicacion",
@@ -51,19 +53,21 @@ export default function TherapistLoginScreen() {
       logout()
       }
 
-      else if (user?.role === 'massage_therapist') return router.replace("/(therapist)/dashboard")
-      else if (user?.role === 'client') return router.replace("/(client)/home")
+      else if (currentUser?.role === 'massage_therapist') return router.replace("/(therapist)/dashboard")
+      else if (currentUser?.role === 'client') return router.replace("/(client)/home")
       else toast({
         title: "Error de validacion",
         description: "No se pudo iniciar sesión",
         variant: "warning",
       })
     }
-    else toast({
-      title: "Error de validacion",
-      description: "Credenciales invalidas",
-      variant: "danger",
-    })
+    else {
+      toast({
+        title: "Error de validacion",
+        description: "Credenciales invalidas",
+        variant: "danger",
+      })
+    }
   }
 
   return (

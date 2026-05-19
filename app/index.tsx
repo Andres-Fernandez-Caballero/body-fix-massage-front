@@ -54,12 +54,13 @@ export default function WelcomeScreen() {
           const { title, body } = event.data.payload
           console.log("EVENTO PUSH", title)
           // Evento push recibido
-          loadNotifications().then()
+          if (token) {
+            loadNotifications().then()
+          }
         }
       }
       
       navigator.serviceWorker.addEventListener("message", handler)
-      loadNotifications().then()
     }
     
     setupSW()

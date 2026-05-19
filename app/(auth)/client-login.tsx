@@ -17,10 +17,11 @@ import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
 import { useAuth } from "@/hooks/use-auth"
 import { LoginSchema } from "@/contracts/schemas/auth/LoginSchema"
+import { useAuthStore } from "@/data/store/auth.storage"
 
 export default function ClientLoginScreen() {
   const router = useRouter()
-  const { login, user, logout } = useAuth()
+  const { login, logout } = useAuth()
   const { toast } = useToast()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -40,24 +41,32 @@ export default function ClientLoginScreen() {
     }
 
 
-    const authState = await login(result.data);
-    console.log(authState)
-    if (authState === 'authenticated') {
-      console.log(user)
-      if (user?.role === 'admin'){
-         toast({
-        title: "Usuario sin Rol habilitado",
-        description: "Este usuario no tiene un rol habilitado para usar la aplicacion",
-        variant: "warning",
-      })
-      logout()
+    const loginResult = await login(result.data);
+    if (loginResult === 'authenticated') {
+      const currentUser = useAuthStore.getState().user;
+      console.log("ROl usuario", currentUser?.role)
+      if (!currentUser?.role) {
+        toast({
+          title: "Usuario sin Rol habilitado",
+          description: "Este usuario no tiene un rol habilitado para usar la aplicacion",
+          variant: "warning",
+        })
+        logout()
+      }
+      else if (currentUser?.role === 'admin') {
+        toast({
+          title: "Usuario sin Rol habilitado",
+          description: "Este usuario no tiene un rol habilitado para usar la aplicacion",
+          variant: "warning",
+        })
+        logout()
       }
 
-      else if (user?.role === 'massage_therapist') return router.replace("/(therapist)/dashboard")
-      else if (user?.role === 'client') return router.replace("/(client)/home")
-      
+      else if (currentUser?.role === 'massage_therapist') return router.replace("/(therapist)/dashboard")
+      else if (currentUser?.role === 'client') return router.replace("/(client)/home")
+
     }
-    else if(authState === 'unauthorized') toast({
+    else if (loginResult === 'unauthorized') toast({
       title: "Error de validacion",
       description: "Credenciales invalidas",
       variant: "danger",

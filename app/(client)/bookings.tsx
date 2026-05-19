@@ -6,10 +6,13 @@ import BookingCard from "@/components/BookingCard"
 
 import { useEffect } from "react"
 import { useBookings } from "@/hooks/use-bookings"
+import { usePayments } from "@/hooks/use-payments"
 import { ActivityIndicator } from "react-native"
+import { LayoutWithNotifications } from "@/components/LayoutWithNotifications"
 
 export default function BookingsScreen() {
   const { bookings, loading, fetchBookings } = useBookings()
+  const { createPayment } = usePayments()
 
   useEffect(() => {
     fetchBookings()
@@ -37,11 +40,13 @@ export default function BookingsScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Bookings</Text>
-      </View>
-
+    <LayoutWithNotifications
+      headerView={
+        <View style={styles.header}>
+          <Text style={styles.title}>My Bookings</Text>
+        </View>
+      }
+    >
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {upcomingBookings.length > 0 && (
           <>
@@ -73,7 +78,7 @@ export default function BookingsScreen() {
           </View>
         )}
       </ScrollView>
-    </View>
+    </LayoutWithNotifications>
   )
 }
 

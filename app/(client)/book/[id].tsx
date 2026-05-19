@@ -7,6 +7,7 @@ import { useState, useEffect } from "react"
 import { useAnnouncements } from "@/hooks/use-announcements"
 import { useBookings } from "@/hooks/use-bookings"
 import { useAvailability } from "@/hooks/use-availability"
+import { usePayments } from "@/hooks/use-payments"
 
 const { width } = Dimensions.get("window")
 
@@ -19,11 +20,10 @@ const AvailabilitySelector = () => (
 export default function BookServiceScreen() {
 
     const { id } = useLocalSearchParams()
-
+    const { createPayment } = usePayments()
     const daysAhead = 14;
-    const { getAnnouncementById } = useAnnouncements()
+    const { fetchAnnouncementById, loading, currentAnnouncement } = useAnnouncements()
     const router = useRouter()
-    const { fetchAnnouncementById, currentAnnouncement, loading } = useAnnouncements()
     const { fetchAvailability, availabilities, loading: availabilityLoading, selectAvailability, currentAvailability } = useAvailability()
     const { createBooking, isCreating } = useBookings()
 
@@ -60,7 +60,7 @@ export default function BookServiceScreen() {
         const endTime = `${endTimeDate.getHours().toString().padStart(2, '0')}:${endTimeDate.getMinutes().toString().padStart(2, '0')}`;
 
         try {
-            await createBooking({
+            const booking = await createBooking({
                 therapistId: currentAnnouncement.therapist.id.toString(),
                 announcementId: currentAnnouncement.id.toString(),
                 date: currentAvailability?.date.toISOString().split('T')[0] || '',
@@ -69,6 +69,12 @@ export default function BookServiceScreen() {
                 notes: ''
             });
 
+            console.log( booking )
+
+            await createPayment({
+                bookingId: booking?.id.toString() || '',
+                paymentMethod: 'fake',
+            });
             router.push("/(client)/bookings");
 
         } catch (err: any) {
@@ -104,7 +110,7 @@ export default function BookServiceScreen() {
 
     return (
         <View style={styles.container}>
-            
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
@@ -112,7 +118,7 @@ export default function BookServiceScreen() {
                 <Text style={styles.headerTitle}>Select Time</Text>
                 <View style={{ width: 24 }} />
             </View>
-            
+
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {/* Service Summary Card */}
                 <View style={styles.serviceCard}>
@@ -144,7 +150,6 @@ export default function BookServiceScreen() {
                         contentContainerStyle={styles.calendarScroll}
                     >
                         {availabilities.map((day, index) => (
-                        {availabilities.map((day, index) => (
                             <TouchableOpacity
                                 key={index}
                                 style={[
@@ -163,7 +168,7 @@ export default function BookServiceScreen() {
                                 <Text style={[
                                     styles.dayNumber,
                                     selectedDateIndex === day.id && styles.dayNumberActive
-                                ]}>{ new Intl.DateTimeFormat('es-AR', { day: 'numeric' }).format(day.date)}</Text>
+                                ]}>{new Intl.DateTimeFormat('es-AR', { day: 'numeric' }).format(day.date)}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>

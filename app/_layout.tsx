@@ -16,11 +16,8 @@ export default function RootLayout() {
   const { loadNotifications } = useNotifications();
 
   useEffect(() => {
-    registerForPushNotificationsAsync();
-  }, []);
-
-  useEffect(() => {
     if (authState === "authenticated") {
+      registerForPushNotificationsAsync();
       loadNotifications();
     }
   }, [authState]);

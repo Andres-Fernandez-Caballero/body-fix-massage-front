@@ -10,12 +10,9 @@ export interface GetNotificationsResponse {
     }
 }
 
-
 export const NotificationApi = {
-    registerWebPush: async () => {
+    registerWebPushSubscription: async (subscription: any) => {
         try {
-            const subscription = await registerWebPush();
-
             const payload = {
                 platform: Platform.OS,
                 endpoint: subscription.endpoint,
@@ -24,11 +21,24 @@ export const NotificationApi = {
                     auth: subscription.toJSON()?.keys?.auth
                 }
             }
+            console.log("DEBUG: registerWebPushSubscription payload:", payload);
             console.log("Push Subscription data:", payload);
             await axiosInstance.post('/api/v1/notifications/register-token', payload);
             console.log("Notification token registered successfully with backend");
-        } catch (error) {
-            console.error("Error in NotificationApi.registerWebPush:", error);
+        } catch (error: any) {
+            console.error("Error in NotificationApi.registerWebPushSubscription:", error.response?.data || error.message);
+            throw error;
+        }
+    },
+    registerNativeToken: async (token: string) => {
+        try {
+            await axiosInstance.post('/api/v1/notifications/register-token', {
+                platform: Platform.OS,
+                token
+            });
+            console.log("Native notification token registered successfully with backend");
+        } catch (error: any) {
+            console.error("Error in NotificationApi.registerNativeToken:", error.response?.data || error.message);
             throw error;
         }
     },
