@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
 import { Stack } from "expo-router"
 import { SafeAreaProvider } from "react-native-safe-area-context"
+import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
@@ -32,14 +33,16 @@ export default function RootLayout() {
   }, [notification]);
 
   return (
-    <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(client)" />
-        <Stack.Screen name="(therapist)" />
-      </Stack>
-      <Toaster />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(client)" />
+          <Stack.Screen name="(therapist)" />
+        </Stack>
+        <Toaster />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   )
 }

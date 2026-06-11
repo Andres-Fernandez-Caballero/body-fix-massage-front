@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { useNotifications } from "@/hooks/use-notifications"
 import { useEffect } from "react"
 import { secureGet } from "@/lib/store"
+import { Ionicons } from "@expo/vector-icons"
 
 const { width, height } = Dimensions.get("window")
 
@@ -33,13 +34,10 @@ export default function WelcomeScreen() {
     let handler: any
 
     async function setupSW() {
-      // 1️⃣ Registrar (o actualizar)
       await navigator.serviceWorker.register("/sw.js")
 
-      // 2️⃣ Esperar activo
       const reg = await navigator.serviceWorker.ready
 
-      // 3️⃣ Enviar token si existe (Corregido: key es 'authToken')
       const token = await secureGet("authToken")
       if (token && reg.active) {
         reg.active.postMessage({
@@ -48,32 +46,29 @@ export default function WelcomeScreen() {
         })
       }
 
-      // 4️⃣ Escuchar mensajes del SW (Alerta "Por Dentro")
       handler = (event: MessageEvent) => {
         if (event.data?.type === "NEW_NOTIFICATION") {
           const { title, body } = event.data.payload
           console.log("EVENTO PUSH", title)
-          // Evento push recibido
           if (token) {
             loadNotifications().then()
           }
         }
       }
-      
+
       navigator.serviceWorker.addEventListener("message", handler)
     }
-    
+
     setupSW()
-    
-    // cleanup
+
     return () => {
       if (handler) {
         navigator.serviceWorker.removeEventListener("message", handler)
       }
     }
   }, [])
-  
-  
+
+
   /* ===========================
   Auth redirect
   =========================== */
@@ -82,65 +77,81 @@ export default function WelcomeScreen() {
       router.replace(
         user?.role === "massage_therapist"
         ? "(therapist)/dashboard"
-        : "(client)/home"
+        : "(client)/explorer"
       )
     }
   }, [authState, user])
-  
+
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#f4cf3dff", "#c7ad2dff"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        colors={["#C17A5C", "#8C5240", "#5A3228"]}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
         style={styles.gradient}
       >
+        {/* Subtle warm overlay circles */}
+        <View style={styles.overlayCircle1} />
+        <View style={styles.overlayCircle2} />
+
         <View style={styles.content}>
+          {/* ── Logo ── */}
           <View style={styles.logoContainer}>
+            <View style={styles.logoBadge}>
+              <Ionicons name="leaf" size={22} color="#C17A5C" />
+            </View>
             <Text style={styles.logo}>BodyFix</Text>
             <Text style={styles.tagline}>
-              Professional Massage at Home
+              Masajes profesionales, a tu alcance
             </Text>
           </View>
 
+          {/* ── Ilustración ── */}
           <Image
             source={{ uri: "/relaxing-spa-massage-therapy-illustration.jpg" }}
             style={styles.illustration}
             resizeMode="contain"
           />
 
+          {/* ── Botones ── */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={() => router.push("/(auth)/client-login")}
             >
-              <Text style={styles.primaryButtonText}>
-                Book a Massage
-              </Text>
+              <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
+              <Ionicons name="arrow-forward" size={18} color="#C17A5C" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={() => router.push("/(auth)/therapist-login")}
+              onPress={() => router.push("/(auth)/client-register")}
             >
-              <Text style={styles.secondaryButtonText}>
-                I'm a Therapist
-              </Text>
+              <Text style={styles.secondaryButtonText}>Crear cuenta</Text>
             </TouchableOpacity>
           </View>
 
+          {/* ── Features ── */}
           <View style={styles.featuresContainer}>
             <View style={styles.feature}>
-              <Text style={styles.featureIcon}>⏱️</Text>
-              <Text style={styles.featureText}>On-Demand Booking</Text>
+              <View style={styles.featureIconWrapper}>
+                <Ionicons name="flash" size={18} color="rgba(255,255,255,0.9)" />
+              </View>
+              <Text style={styles.featureText}>A demanda</Text>
             </View>
+            <View style={styles.featureDivider} />
             <View style={styles.feature}>
-              <Text style={styles.featureIcon}>✅</Text>
-              <Text style={styles.featureText}>Certified Therapists</Text>
+              <View style={styles.featureIconWrapper}>
+                <Ionicons name="shield-checkmark" size={18} color="rgba(255,255,255,0.9)" />
+              </View>
+              <Text style={styles.featureText}>Certificados</Text>
             </View>
+            <View style={styles.featureDivider} />
             <View style={styles.feature}>
-              <Text style={styles.featureIcon}>🏠</Text>
-              <Text style={styles.featureText}>At Your Home</Text>
+              <View style={styles.featureIconWrapper}>
+                <Ionicons name="calendar" size={18} color="rgba(255,255,255,0.9)" />
+              </View>
+              <Text style={styles.featureText}>Fácil reserva</Text>
             </View>
           </View>
         </View>
@@ -157,91 +168,141 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+  overlayCircle1: {
+    position: "absolute",
+    width: width * 1.2,
+    height: width * 1.2,
+    borderRadius: width * 0.6,
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    top: -width * 0.4,
+    left: -width * 0.1,
+  },
+  overlayCircle2: {
+    position: "absolute",
+    width: width * 0.9,
+    height: width * 0.9,
+    borderRadius: width * 0.45,
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    bottom: -width * 0.2,
+    right: -width * 0.2,
+  },
   content: {
     flex: 1,
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: 28,
+    paddingTop: 70,
+    paddingBottom: 44,
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: 20,
+    gap: 8,
+  },
+  logoBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   logo: {
-    fontSize: 48,
-    fontWeight: "bold",
+    fontSize: 44,
+    fontWeight: "800",
     color: "#fff",
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   tagline: {
-    fontSize: 16,
-    color: "#E0E7FF",
-    marginTop: 8,
-    fontWeight: "500",
+    fontSize: 15,
+    color: "rgba(255, 255, 255, 0.78)",
+    fontWeight: "400",
+    letterSpacing: 0.2,
   },
   illustration: {
-    width: width * 0.7,
-    height: height * 0.25,
-    marginVertical: 20,
+    width: width * 0.72,
+    height: height * 0.26,
+    marginVertical: 16,
   },
   buttonContainer: {
     width: "100%",
-    gap: 16,
+    gap: 12,
   },
   primaryButton: {
     backgroundColor: "#fff",
-    paddingVertical: 18,
-    borderRadius: 16,
+    paddingVertical: 17,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 6,
   },
   primaryButtonText: {
-    color: Colors.light.primary,
-    fontSize: 18,
+    color: "#C17A5C",
+    fontSize: 17,
     fontWeight: "700",
+    letterSpacing: 0.2,
   },
   secondaryButton: {
-    backgroundColor: "transparent",
-    borderWidth: 2,
-    borderColor: "#fff",
-    paddingVertical: 18,
-    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.45)",
+    paddingVertical: 17,
+    borderRadius: 14,
     alignItems: "center",
   },
   secondaryButtonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600",
+    letterSpacing: 0.2,
   },
   featuresContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    alignItems: "center",
+    justifyContent: "center",
     width: "100%",
-    gap: 12,
-    marginTop: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
   },
   feature: {
     flex: 1,
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+    gap: 6,
   },
-  featureIcon: {
-    fontSize: 24,
-    marginBottom: 8,
+  featureIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  featureDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
   featureText: {
-    color: "#fff",
+    color: "rgba(255, 255, 255, 0.9)",
     fontSize: 12,
     fontWeight: "600",
     textAlign: "center",
+    letterSpacing: 0.1,
   },
 })

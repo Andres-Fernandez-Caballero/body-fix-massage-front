@@ -1,7 +1,8 @@
 // data/api/axios.instance.ts
 import axios from 'axios';
 import { secureDelete, secureGet } from '@/lib/store';
-// import { router } from 'expo-router'; // si lo usás acá
+import { router } from 'expo-router';
+import { useAuthStore } from '@/data/store/auth.storage';
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost';
@@ -43,15 +44,21 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const status = error?.response?.status;
 
-    // --- 401 → logout automático ---
-    if (status === 401 && !isLoggingOut) {
+    // --- 401 → logout automático (solo en rutas protegidas, no en login/register) ---
+    const requestUrl = error.config?.url ?? '';
+    const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+
+    if (status === 401 && !isLoggingOut && !isAuthEndpoint) {
       isLoggingOut = true;
 
       await secureDelete('authToken');
+      await secureDelete('user');
 
-      // 🔴 elegí una sola estrategia:
-      // router.replace('/(auth)/login');
-      // o emitir un evento global de logout
+      const { clearUser, setAuthState } = useAuthStore.getState();
+      clearUser();
+      setAuthState('unauthorized');
+
+      router.replace('/');
 
       isLoggingOut = false;
     }

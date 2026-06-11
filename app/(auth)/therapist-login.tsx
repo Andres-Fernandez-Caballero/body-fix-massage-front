@@ -10,21 +10,25 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native"
 import { useRouter } from "expo-router"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
-import { toast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { LoginSchema } from "@/contracts/schemas/auth/LoginSchema"
 import { useAuthStore } from "@/data/store/auth.storage"
 
 export default function TherapistLoginScreen() {
   const router = useRouter()
-  const { login, logout } = useAuth()
+  const { login, logout, authState } = useAuth()
+  const { toast } = useToast()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+
+  const isLoading = authState === "processing"
 
   const handleLogin = async () => {
     const result = LoginSchema.safeParse({ email, password });
@@ -40,7 +44,7 @@ export default function TherapistLoginScreen() {
 
 
     const loginResult = await login(result.data);
-  
+
     if (loginResult === 'authenticated') {
       const currentUser = useAuthStore.getState().user;
       console.log(currentUser)
@@ -54,10 +58,10 @@ export default function TherapistLoginScreen() {
       }
 
       else if (currentUser?.role === 'massage_therapist') return router.replace("/(therapist)/dashboard")
-      else if (currentUser?.role === 'client') return router.replace("/(client)/home")
+      else if (currentUser?.role === 'client') return router.replace("/(client)/explorer")
       else toast({
         title: "Error de validacion",
-        description: "No se pudo iniciar sesión",
+        description: "No se pudo iniciar sesión",
         variant: "warning",
       })
     }
@@ -72,10 +76,16 @@ export default function TherapistLoginScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
-        </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContent} bounces={false} showsVerticalScrollIndicator={false}>
+        {/* Brand header strip */}
+        <View style={styles.brandHeader}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={20} color={Colors.light.secondary} />
+          </TouchableOpacity>
+          <View style={styles.brandBadge}>
+            <Ionicons name="briefcase" size={16} color="#fff" />
+          </View>
+        </View>
 
         <View style={styles.header}>
           <Text style={styles.title}>Therapist Login</Text>
@@ -85,40 +95,51 @@ export default function TherapistLoginScreen() {
         <View style={styles.form}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your email"
-              placeholderTextColor={Colors.light.icon}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+            <View style={styles.inputWrapper}>
+              <Ionicons name="mail-outline" size={18} color={Colors.light.icon} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your email"
+                placeholderTextColor={Colors.light.icon}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Password</Text>
-            <View style={styles.passwordContainer}>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="lock-closed-outline" size={18} color={Colors.light.icon} style={styles.inputIcon} />
               <TextInput
-                style={styles.passwordInput}
+                style={[styles.input, { flex: 1 }]}
                 placeholder="Enter your password"
                 placeholderTextColor={Colors.light.icon}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color={Colors.light.icon} />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={Colors.light.icon} />
               </TouchableOpacity>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.forgotPassword}>
+          <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push("/(auth)/forgot-password")}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Sign In</Text>
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Text style={styles.loginButtonText}>Sign In</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
+              </>
+            )}
           </TouchableOpacity>
 
           <View style={styles.divider}>
@@ -129,7 +150,7 @@ export default function TherapistLoginScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Want to join BodyFix? </Text>
-            <TouchableOpacity onPress={() => router.push("/(auth)/therapist-register")}>
+            <TouchableOpacity onPress={() => router.push("/(auth)/therapist-register" as any)}>
               <Text style={styles.footerLink}>Apply Now</Text>
             </TouchableOpacity>
           </View>
@@ -142,28 +163,49 @@ export default function TherapistLoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.light.background,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
   },
-  backButton: {
+  brandHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginTop: 60,
-    marginBottom: 20,
+    marginBottom: 32,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#E8F0ED",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  brandBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.light.secondary,
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
-    marginBottom: 40,
+    marginBottom: 36,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
+    fontSize: 30,
+    fontWeight: "700",
     color: Colors.light.text,
-    marginBottom: 8,
+    marginBottom: 6,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.light.icon,
+    lineHeight: 22,
   },
   form: {
     flex: 1,
@@ -172,62 +214,68 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     color: Colors.light.text,
     marginBottom: 8,
+    letterSpacing: 0.1,
   },
-  input: {
-    backgroundColor: Colors.light.card,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  passwordContainer: {
+  inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.light.card,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: 1.5,
     borderColor: Colors.light.border,
+    paddingHorizontal: 14,
+    minHeight: 52,
   },
-  passwordInput: {
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
     flex: 1,
-    paddingVertical: 16,
-    fontSize: 16,
+    fontSize: 15,
+    color: Colors.light.text,
+    paddingVertical: 14,
+  },
+  eyeButton: {
+    padding: 4,
   },
   forgotPassword: {
     alignSelf: "flex-end",
-    marginBottom: 24,
+    marginBottom: 28,
   },
   forgotPasswordText: {
-    color: Colors.light.primary,
+    color: Colors.light.secondary,
     fontSize: 14,
     fontWeight: "600",
   },
   loginButton: {
-    backgroundColor: Colors.light.primary,
-    borderRadius: 12,
-    paddingVertical: 18,
+    backgroundColor: Colors.light.secondary,
+    borderRadius: 14,
+    paddingVertical: 17,
+    paddingHorizontal: 24,
+    flexDirection: "row",
     alignItems: "center",
-    shadowColor: Colors.light.primary,
-    shadowOffset: { width: 0, height: 4 },
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: Colors.light.secondary,
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 6,
   },
   loginButtonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
+    letterSpacing: 0.2,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 32,
+    marginVertical: 28,
   },
   dividerLine: {
     flex: 1,
@@ -235,9 +283,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.border,
   },
   dividerText: {
-    marginHorizontal: 16,
+    marginHorizontal: 14,
     color: Colors.light.icon,
-    fontSize: 14,
+    fontSize: 13,
   },
   footer: {
     flexDirection: "row",
@@ -250,8 +298,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   footerLink: {
-    color: Colors.light.primary,
+    color: Colors.light.secondary,
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 })

@@ -7,7 +7,7 @@ export default function AuthLayout() {
 
   if (authState === "authenticated") {
     
-    return <Redirect href={user?.role === "massage_therapist" ? "(therapist)/dashboard" : "(client)/home"} />
+    return <Redirect href={user?.role === "massage_therapist" ? "(therapist)/dashboard" : "(client)/explorer"} />
   }
 
   return (
@@ -15,6 +15,7 @@ export default function AuthLayout() {
       <Stack.Screen name="client-login" />
       <Stack.Screen name="client-register" />
       <Stack.Screen name="therapist-login" />
+      <Stack.Screen name="forgot-password" />
     </Stack>
   )
 }

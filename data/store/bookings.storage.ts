@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Booking } from '@/contracts/models/user.interface';
+import { Booking } from '@/contracts/models/booking.interface';
 
 interface BookingsState {
     bookings: Booking[];

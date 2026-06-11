@@ -16,21 +16,55 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bodyfix.app"
+      "bundleIdentifier": "com.bodyfix.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "BodyFix usa tu ubicación para mostrarte los locales más cercanos.",
+        "NSPhotoLibraryUsageDescription": "BodyFix necesita acceso a tu galería para cambiar tu foto de perfil.",
+        "NSCameraUsageDescription": "BodyFix necesita acceso a la cámara para tomar una foto de perfil."
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyBE63bnKDa9-RVTbCj6hU1K3Z2-ZIwIURU"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#3D64F4"
       },
-      "package": "com.bodyfix.app"
+      "package": "com.bodyfix.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBE63bnKDa9-RVTbCj6hU1K3Z2-ZIwIURU"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "react-native-maps",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "BodyFix usa tu ubicación para mostrarte los locales más cercanos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BodyFix necesita acceso a tu galería para cambiar tu foto de perfil.",
+          "cameraPermission": "BodyFix necesita acceso a la cámara para tomar una foto de perfil."
+        }
+      ],
+      "expo-web-browser"
     ],
     "scheme": "bodyfix"
   }

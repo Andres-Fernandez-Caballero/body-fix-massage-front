@@ -3,9 +3,13 @@ export interface Notification {
     data: {
         title: string,
         body: string,
-        url: string,
+        url: string | null,
+        data?: {
+            screen?: string,
+            bookingId?: number,
+        },
     },
-    readAt: string| null,
+    readAt: string | null,
     createdAt: string,
     updatedAt: string,
 }

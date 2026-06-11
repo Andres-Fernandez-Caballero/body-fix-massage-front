@@ -1,4 +1,4 @@
-import { Booking, MetaCollection, MetaPaginationLinks } from "@/contracts/models/user.interface";
+import { MetaCollection, MetaPaginationLinks } from "@/contracts/models/user.interface";
 import { axiosInstance } from "./axios.instance";
 
 export interface PaymentResponse {

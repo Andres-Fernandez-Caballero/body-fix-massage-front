@@ -2,91 +2,130 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "@/constants/Colors"
 
+type BookingStatus = "pending_payment" | "pending" | "confirmed" | "completed" | "cancelled" | "expired"
+
 interface BookingCardProps {
   booking: {
-    id: string
-    therapistName: string
-    massageType: string
+    id: number
+    localName: string
+    especialidadNombre: string
     date: string
     time: string
-    status: "upcoming" | "completed" | "cancelled"
-    address: string
+    status: BookingStatus
+    price: number | null
     rating?: number
   }
   onViewDetails?: () => void
-  onReschedule?: () => void
   onReview?: () => void
 }
 
-export default function BookingCard({ booking, onViewDetails, onReschedule, onReview }: BookingCardProps) {
-  const isUpcoming = booking.status === "upcoming"
+export default function BookingCard({ booking, onViewDetails, onReview }: BookingCardProps) {
+  const isPendingPayment = booking.status === "pending_payment"
+  const isPending   = booking.status === "pending"
+  const isConfirmed = booking.status === "confirmed"
   const isCompleted = booking.status === "completed"
+  const isUpcoming  = isPendingPayment || isPending || isConfirmed
+
+  const statusConfig: Record<BookingStatus, { label: string; bg: string; color: string; icon: React.ComponentProps<typeof Ionicons>["name"] }> = {
+    pending_payment: {
+      label: "Pago pendiente",
+      bg: "#EFF6FF",
+      color: "#3B82F6",
+      icon: "card-outline",
+    },
+    pending: {
+      label: "Pendiente",
+      bg: "#FEF3C7",
+      color: "#D97706",
+      icon: "time-outline",
+    },
+    confirmed: {
+      label: "Confirmado",
+      bg: Colors.light.successLight,
+      color: Colors.light.success,
+      icon: "checkmark-circle-outline",
+    },
+    completed: {
+      label: "Finalizado",
+      bg: "#F3F4F6",
+      color: "#6B7280",
+      icon: "checkmark-done-outline",
+    },
+    cancelled: {
+      label: "Cancelado",
+      bg: Colors.light.errorLight,
+      color: Colors.light.error,
+      icon: "close-circle-outline",
+    },
+    expired: {
+      label: "Expirado",
+      bg: "#F3F4F6",
+      color: "#9CA3AF",
+      icon: "alert-circle-outline",
+    },
+  }
+
+  const status = statusConfig[booking.status]
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.therapistName}>{booking.therapistName}</Text>
-          <Text style={styles.massageType}>{booking.massageType}</Text>
+        <View style={styles.headerInfo}>
+          <Text style={styles.localName}>{booking.localName}</Text>
+          <Text style={styles.especialidad}>{booking.especialidadNombre}</Text>
         </View>
-        <View
-          style={[
-            styles.statusBadge,
-            isUpcoming && styles.upcomingBadge,
-            isCompleted && styles.completedBadge,
-            booking.status === "cancelled" && styles.cancelledBadge,
-          ]}
-        >
-          <Text
-            style={[
-              styles.statusText,
-              isCompleted && { color: Colors.light.success },
-              booking.status === "cancelled" && { color: Colors.light.error },
-            ]}
-          >
-            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-          </Text>
+        <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+          <Ionicons name={status.icon} size={12} color={status.color} />
+          <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
         </View>
       </View>
 
+      <View style={styles.divider} />
+
       <View style={styles.details}>
         <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={16} color={Colors.light.icon} />
+          <View style={styles.detailIcon}>
+            <Ionicons name="calendar-outline" size={15} color={Colors.light.primary} />
+          </View>
           <Text style={styles.detailText}>{booking.date}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Ionicons name="time-outline" size={16} color={Colors.light.icon} />
+          <View style={styles.detailIcon}>
+            <Ionicons name="time-outline" size={15} color={Colors.light.primary} />
+          </View>
           <Text style={styles.detailText}>{booking.time}</Text>
         </View>
-        {isUpcoming && (
+        {booking.price !== null && booking.price !== undefined && (
           <View style={styles.detailRow}>
-            <Ionicons name="location-outline" size={16} color={Colors.light.icon} />
-            <Text style={styles.detailText}>{booking.address}</Text>
+            <View style={styles.detailIcon}>
+              <Ionicons name="cash-outline" size={15} color={Colors.light.primary} />
+            </View>
+            <Text style={styles.detailText}>
+              Seña: ${Number(booking.price).toLocaleString("es-AR")}
+            </Text>
           </View>
         )}
         {isCompleted && booking.rating && (
           <View style={styles.detailRow}>
-            <Ionicons name="star" size={16} color={Colors.light.warning} />
-            <Text style={styles.detailText}>Rated {booking.rating}/5</Text>
+            <View style={styles.detailIcon}>
+              <Ionicons name="star" size={15} color={Colors.light.warning} />
+            </View>
+            <Text style={styles.detailText}>Calificación: {booking.rating}/5</Text>
           </View>
         )}
       </View>
 
-      {isUpcoming && (
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.secondaryButton} onPress={onReschedule}>
-            <Text style={styles.secondaryButtonText}>Reschedule</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={onViewDetails}>
-            <Text style={styles.primaryButtonText}>View Details</Text>
-          </TouchableOpacity>
-        </View>
+      {isUpcoming && onViewDetails && (
+        <TouchableOpacity style={styles.primaryButton} onPress={onViewDetails} activeOpacity={0.8}>
+          <Text style={styles.primaryButtonText}>Ver detalles</Text>
+          <Ionicons name="arrow-forward" size={15} color="#fff" />
+        </TouchableOpacity>
       )}
 
-      {isCompleted && !booking.rating && (
-        <TouchableOpacity style={styles.reviewButton} onPress={onReview}>
-          <Ionicons name="star-outline" size={18} color={Colors.light.primary} />
-          <Text style={styles.reviewButtonText}>Leave a Review</Text>
+      {isCompleted && !booking.rating && onReview && (
+        <TouchableOpacity style={styles.reviewButton} onPress={onReview} activeOpacity={0.8}>
+          <Ionicons name="star-outline" size={16} color={Colors.light.primary} />
+          <Text style={styles.reviewButtonText}>Dejar reseña</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -95,90 +134,91 @@ export default function BookingCard({ booking, onViewDetails, onReschedule, onRe
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.light.card,
-    borderRadius: 16,
+    backgroundColor: Colors.light.background,
+    borderRadius: 18,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: Colors.light.border,
+    shadowColor: "#8C5240",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  therapistName: {
-    fontSize: 18,
-    fontWeight: "600",
+  headerInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  localName: {
+    fontSize: 16,
+    fontWeight: "700",
     color: Colors.light.text,
-    marginBottom: 4,
+    marginBottom: 3,
+    letterSpacing: -0.1,
   },
-  massageType: {
-    fontSize: 14,
+  especialidad: {
+    fontSize: 13,
     color: Colors.light.icon,
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  upcomingBadge: {
-    backgroundColor: "#EEF2FF",
-  },
-  completedBadge: {
-    backgroundColor: "#ECFDF5",
-  },
-  cancelledBadge: {
-    backgroundColor: "#FEE2E2",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: Colors.light.primary,
+    fontWeight: "700",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.light.border,
+    marginBottom: 12,
   },
   details: {
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
+  },
+  detailIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.light.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
   },
   detailText: {
     fontSize: 14,
-    color: Colors.light.icon,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 12,
+    color: Colors.light.text,
+    fontWeight: "500",
   },
   primaryButton: {
-    flex: 1,
     backgroundColor: Colors.light.primary,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
   },
   primaryButtonText: {
     color: "#fff",
     fontSize: 14,
-    fontWeight: "600",
-  },
-  secondaryButton: {
-    flex: 1,
-    backgroundColor: "#fff",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  secondaryButtonText: {
-    color: Colors.light.text,
-    fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   reviewButton: {
     flexDirection: "row",
@@ -186,13 +226,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
     borderColor: Colors.light.primary,
+    backgroundColor: Colors.light.primaryLight,
   },
   reviewButtonText: {
     color: Colors.light.primary,
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 })

@@ -12,6 +12,38 @@ export interface ApiError {
 export function parseApiError(error: unknown): ApiError {
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
+    const data   = error.response?.data;
+
+    // 401 → no autenticado / credenciales incorrectas
+    if (status === 401) {
+      return {
+        type: 'validation',
+        status,
+        message: data?.message ?? data?.error ?? 'Credenciales incorrectas.',
+      };
+    }
+
+    // 403 → sin permiso
+    if (status === 403) {
+      return {
+        type: 'validation',
+        status,
+        message: data?.message ?? 'No tenés permiso para realizar esta acción.',
+      };
+    }
+
+    // 422 → errores de validación de Laravel
+    if (status === 422) {
+      const errors = data?.errors as Record<string, string[]> | undefined;
+      let message = data?.message ?? 'Datos inválidos';
+      if (errors) {
+        const firstField = Object.values(errors)[0];
+        if (Array.isArray(firstField) && firstField.length > 0) {
+          message = firstField[0];
+        }
+      }
+      return { type: 'validation', status, message };
+    }
 
     // 400 / 409 → error de negocio
     if (status === 400 || status === 409) {
@@ -19,9 +51,9 @@ export function parseApiError(error: unknown): ApiError {
         type: 'validation',
         status,
         message:
-          error.response?.data?.message ??
-          error.response?.data?.error ??
-          'Invalid request',
+          data?.message ??
+          data?.error ??
+          'Solicitud inválida.',
       };
     }
 
@@ -30,13 +62,13 @@ export function parseApiError(error: unknown): ApiError {
       return {
         type: 'server',
         status,
-        message: 'Server error. Please try again later.',
+        message: 'Error en el servidor. Por favor intentá de nuevo.',
       };
     }
   }
 
   return {
     type: 'unknown',
-    message: 'Unexpected error occurred.',
+    message: 'Ocurrió un error inesperado.',
   };
 }

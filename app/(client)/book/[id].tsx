@@ -101,7 +101,7 @@ export default function BookServiceScreen() {
         )
     }
 
-    const selectedDateObj = new Date()
+    const selectedDateObj = availabilities[selectedDateIndex]?.date ?? new Date()
     const formattedDate = selectedDateObj.toLocaleDateString('es-AR', {
         weekday: 'long',
         month: 'long',
@@ -158,16 +158,17 @@ export default function BookServiceScreen() {
                                 ]}
                                 onPress={() => {
                                     setSelectedDateIndex(index)
-                                    setSelectedTime(null) // Reset time when date changes
+                                    setSelectedTime(null)
+                                    selectAvailability(availabilities[index])
                                 }}
                             >
                                 <Text style={[
                                     styles.dayName,
-                                    selectedDateIndex === day.id && styles.dayNameActive
+                                    selectedDateIndex === index && styles.dayNameActive
                                 ]}>{new Intl.DateTimeFormat('es-AR', { weekday: 'long' }).format(day.date)}</Text>
                                 <Text style={[
                                     styles.dayNumber,
-                                    selectedDateIndex === day.id && styles.dayNumberActive
+                                    selectedDateIndex === index && styles.dayNumberActive
                                 ]}>{new Intl.DateTimeFormat('es-AR', { day: 'numeric' }).format(day.date)}</Text>
                             </TouchableOpacity>
                         ))}

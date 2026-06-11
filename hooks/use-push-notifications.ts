@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import { registerWebPush } from '@/lib/web_push';
 import { NotificationApi } from '@/data/api/notifications.api';
 
@@ -18,6 +19,7 @@ Notifications.setNotificationHandler({
 });
 
 export function usePushNotifications() {
+    const router = useRouter();
     const [expoPushToken, setExpoPushToken] = useState<string | undefined>(undefined);
     const [notification, setNotification] = useState<Notifications.Notification | undefined>(undefined);
     const notificationListener = useRef<Notifications.Subscription>();
@@ -90,7 +92,17 @@ export function usePushNotifications() {
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-            console.log("Notification interaction:", response);
+            const data = response.notification.request.content.data as {
+                screen?: string;
+                bookingId?: number;
+            };
+
+            if (data?.screen === 'review' && data?.bookingId) {
+                router.push({
+                    pathname: '/(client)/review/[bookingId]',
+                    params: { bookingId: data.bookingId },
+                });
+            }
         });
 
         return () => {

@@ -15,6 +15,7 @@ import { Colors } from '@/constants/Colors';
 import { useNotifications } from '@/hooks/use-notifications';
 import { Notification } from '@/contracts/models/notifications.interface';
 import { SIDEBAR_WIDTH, styles, width } from './style';
+import { useRouter } from 'expo-router';
 
 
 interface NotificationSidebarProps {
@@ -25,8 +26,9 @@ interface NotificationSidebarProps {
 export function NotificationSidebar({ showNotifications, onClose }: NotificationSidebarProps) {
     const slideAnim = useRef(new Animated.Value(width)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
+    const router = useRouter();
 
-    const { notifications, markAsRead, markAllAsRead, loadNotifications } 
+    const { notifications, markAsRead, markAllAsRead, loadNotifications }
     = useNotifications();
 
     useEffect(() => {
@@ -73,13 +75,26 @@ export function NotificationSidebar({ showNotifications, onClose }: Notification
         onClose();
     };
 
+    const handleNotificationPress = (item: Notification) => {
+        markAsRead(item.id);
+        const deeplink = item.data?.data;
+        if (deeplink?.screen === 'review' && deeplink?.bookingId) {
+            onClose();
+            router.push({
+                pathname: '/(client)/review/[bookingId]',
+                params: { bookingId: deeplink.bookingId },
+            });
+        }
+    };
+
     const renderItem = ({ item }: { item: Notification }) => {
         const isUnread = !item.readAt;
+        const hasAction = item.data?.data?.screen === 'review';
 
         return (
             <TouchableOpacity
                 style={[styles.itemCallback, isUnread && styles.unreadItem]}
-                onPress={() => markAsRead(item.id)}
+                onPress={() => handleNotificationPress(item)}
                 activeOpacity={0.7}
             >
                 <View style={[styles.iconContainer, isUnread && styles.unreadIconContainer]}>
@@ -92,6 +107,12 @@ export function NotificationSidebar({ showNotifications, onClose }: Notification
                 <View style={styles.textContainer}>
                     <Text style={[styles.itemTitle, isUnread && styles.unreadTitle]}>{item.data.title}</Text>
                     <Text style={styles.itemBody} numberOfLines={3}>{item.data.body}</Text>
+                    {hasAction && (
+                        <View style={ratingCalloutStyle}>
+                            <Ionicons name="star-outline" size={12} color={Colors.light.primary} />
+                            <Text style={ratingCalloutTextStyle}>Calificar ahora →</Text>
+                        </View>
+                    )}
                     <Text style={styles.itemTime}>
                         {new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Text>
@@ -99,7 +120,7 @@ export function NotificationSidebar({ showNotifications, onClose }: Notification
                 {isUnread && (
                     <TouchableOpacity
                         style={styles.markReadButton}
-                        onPress={() => markAsRead(item.id)}
+                        onPress={(e) => { e.stopPropagation?.(); markAsRead(item.id); }}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
                         <Ionicons name="checkmark" size={16} color={Colors.light.primary} />
@@ -107,6 +128,20 @@ export function NotificationSidebar({ showNotifications, onClose }: Notification
                 )}
             </TouchableOpacity>
         );
+    };
+
+    // Inline styles for the "Calificar" callout (avoids importing StyleSheet)
+    const ratingCalloutStyle = {
+        flexDirection: 'row' as const,
+        alignItems: 'center' as const,
+        gap: 4,
+        marginTop: 4,
+        marginBottom: 2,
+    };
+    const ratingCalloutTextStyle = {
+        fontSize: 12,
+        fontWeight: '600' as const,
+        color: Colors.light.primary,
     };
 
     return (
@@ -128,8 +163,8 @@ export function NotificationSidebar({ showNotifications, onClose }: Notification
                         { transform: [{ translateX: slideAnim }] },
                     ]}
                 >
-                    <View style={styles.header}>
-                        <Text style={styles.title}>Notifications</Text>
+                    <View style={styles.sidebarHeader}>
+                        <Text style={styles.title}>Notificaciones</Text>
                         <View style={{ flexDirection: 'row', gap: 15, alignItems: 'center' }}>
                             <TouchableOpacity onPress={() => markAllAsRead()}>
                                 <Ionicons name="checkmark-done-outline" size={24} color={Colors.light.primary} />
@@ -148,7 +183,7 @@ export function NotificationSidebar({ showNotifications, onClose }: Notification
                         ListEmptyComponent={
                             <View style={styles.emptyState}>
                                 <Ionicons name="notifications-off-outline" size={48} color={Colors.light.tabIconDefault} />
-                                <Text style={styles.emptyText}>No notifications</Text>
+                                <Text style={styles.emptyText}>Sin notificaciones</Text>
                             </View>
                         }
                     />
