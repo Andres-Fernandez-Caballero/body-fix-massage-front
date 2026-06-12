@@ -1,6 +1,6 @@
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    ActivityIndicator, Image,
+    ActivityIndicator, Image, AppState, Linking,
 } from "react-native"
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router"
 import { Colors } from "@/constants/Colors"
@@ -8,8 +8,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useLocalBooking, useLocals } from "@/hooks/use-locals"
 import type { LocalSlot, Masajista } from "@/contracts/models/local.interface"
-import { getBookingPaymentStatus } from "@/data/api/locals.api"
-import * as WebBrowser from 'expo-web-browser'
+import { getBookingPaymentStatus, cancelPendingBooking } from "@/data/api/locals.api"
 
 type Step = 'fecha' | 'hora' | 'masajista' | 'confirmar'
 
@@ -45,19 +44,29 @@ export default function ReservarScreen() {
     const [bookingResult, setBookingResult]         = useState<BookingResult>(null)
 
     // ── Estado del flujo de pago ────────────────────────────────────────────────
-    // 'idle'    → sin pago en curso
-    // 'polling' → browser cerrado; consultando el estado del pago a la API
-    // 'timeout' → se agotaron los reintentos sin confirmación
-    type PaymentPhase = 'idle' | 'polling' | 'timeout'
-    const [paymentPhase, setPaymentPhase] = useState<PaymentPhase>('idle')
-    const pollingTimer                    = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const pendingBookingRef               = useRef<{
+    // 'idle'         → sin pago en curso
+    // 'waiting_user' → browser externo abierto; esperando que el usuario complete el pago
+    // 'polling'      → usuario volvió a la app; consultando el estado del pago a la API
+    // 'timeout'      → se agotaron los reintentos sin confirmación
+    type PaymentPhase = 'idle' | 'waiting_user' | 'polling' | 'timeout'
+    const [paymentPhase, setPaymentPhase]         = useState<PaymentPhase>('idle')
+    const [pendingInitPoint, setPendingInitPoint] = useState<string | null>(null)
+    const pollingTimer                            = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const appStateSubscription                    = useRef<any>(null)
+    const linkingSubscription                     = useRef<any>(null)
+    const deepLinkReceivedRef                     = useRef(false)
+    const returnHandledRef                        = useRef(false)
+    const pendingBookingRef                       = useRef<{
         id: number; date: string; time: string; masajista: string
         especialidad: string | null; price: number | null
     } | null>(null)
 
-    // Cancela timers de polling activos
+    // Cancela timers de polling activos y limpia listeners de browser/AppState
     const stopPaymentFlow = useCallback(() => {
+        appStateSubscription.current?.remove()
+        appStateSubscription.current = null
+        linkingSubscription.current?.remove()
+        linkingSubscription.current = null
         if (pollingTimer.current) { clearTimeout(pollingTimer.current); pollingTimer.current = null }
     }, [])
 
@@ -74,7 +83,10 @@ export default function ReservarScreen() {
             setSelectedMasajista(null)
             setBookingResult(null)
             setPaymentPhase('idle')
-            pendingBookingRef.current = null
+            setPendingInitPoint(null)
+            pendingBookingRef.current   = null
+            deepLinkReceivedRef.current = false
+            returnHandledRef.current    = false
             stopPaymentFlow()
             if (locals.length === 0) fetchLocals()
             fetchEspecialidades()
@@ -164,7 +176,7 @@ export default function ReservarScreen() {
             const { data: booking, payment } = response
 
             if (payment.requires_payment && payment.init_point) {
-                // ── Flujo con seña (Mercado Pago) ─────────────────────────
+                // ── Flujo con seña (Mercado Pago — browser externo) ───────
                 pendingBookingRef.current = {
                     id:           booking.id,
                     date:         selectedDay.date,
@@ -174,19 +186,49 @@ export default function ReservarScreen() {
                     price:        espPrice,
                 }
 
-                // Abrir el checkout en un browser in-app (SFSafariViewController en iOS,
-                // Chrome Custom Tab en Android). La Promise bloquea hasta que:
-                //   • MP redirige a bodyfix://payment-callback  → type: 'success'
-                //   • El usuario cierra el browser manualmente  → type: 'dismiss'
-                // En ambos casos iniciamos polling — el usuario puede haber pagado
-                // incluso si cerró el browser antes del redirect.
-                await WebBrowser.openAuthSessionAsync(
-                    payment.init_point,
-                    'bodyfix://payment-callback',
-                )
+                deepLinkReceivedRef.current = false
+                returnHandledRef.current    = false
+                setPendingInitPoint(payment.init_point)
+                setPaymentPhase('waiting_user')
 
-                // Browser cerrado → verificar resultado con la API
-                startPolling(booking.id)
+                // Escuchar el deep link de retorno de MP → bodyfix://payment-callback
+                linkingSubscription.current = Linking.addEventListener('url', ({ url }) => {
+                    if (url.includes('payment-callback') && !deepLinkReceivedRef.current) {
+                        deepLinkReceivedRef.current = true
+                        linkingSubscription.current?.remove()
+                        linkingSubscription.current = null
+                        startPolling(booking.id)
+                    }
+                })
+
+                // Detectar cuando el usuario vuelve a la app (sea por redirect o cierre manual)
+                appStateSubscription.current = AppState.addEventListener('change', (nextState) => {
+                    if (nextState === 'active' && !returnHandledRef.current) {
+                        returnHandledRef.current = true
+                        appStateSubscription.current?.remove()
+                        appStateSubscription.current = null
+
+                        // Esperar 400ms para que el evento Linking llegue primero si hubo redirect
+                        setTimeout(() => {
+                            if (deepLinkReceivedRef.current) {
+                                // MP redirigió al deep link → polling ya iniciado
+                                return
+                            }
+                            // Sin deep link: el usuario volvió sin completar el pago,
+                            // o el pago fue aprobado pero auto_return no disparó (sandbox).
+                            // En ambos casos iniciamos polling — si el pago fue aprobado,
+                            // el polling lo confirma; si no, hace timeout y el usuario
+                            // puede verificar en "Mis turnos".
+                            const bookingId = pendingBookingRef.current?.id
+                            if (bookingId) {
+                                startPolling(bookingId)
+                            }
+                        }, 400)
+                    }
+                })
+
+                // Abrir el checkout en el browser externo (Safari en iOS, Chrome en Android)
+                Linking.openURL(payment.init_point)
             } else {
                 // ── Flujo sin seña ────────────────────────────────────────
                 setBookingResult({
@@ -505,6 +547,48 @@ export default function ReservarScreen() {
                                   </>
                         }
                     </TouchableOpacity>
+                </View>
+            )}
+
+            {/* ── Overlay: browser externo abierto, esperando que el usuario pague ── */}
+            {paymentPhase === 'waiting_user' && (
+                <View style={styles.resultOverlay}>
+                    <View style={styles.resultCard}>
+                        <View style={styles.resultIconWrapper}>
+                            <View style={[styles.resultIconBg, { backgroundColor: '#EFF6FF' }]}>
+                                <Ionicons name="globe-outline" size={52} color="#3B82F6" />
+                            </View>
+                        </View>
+                        <Text style={styles.resultTitle}>Completá el pago</Text>
+                        <Text style={[styles.resultSubtitle, { marginBottom: 24 }]}>
+                            Se abrió Mercado Pago en el browser. Cuando termines, volvé a la app y verificaremos tu pago automáticamente.
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.resultPrimaryBtn, { alignSelf: 'stretch', marginBottom: 10 }]}
+                            onPress={() => pendingInitPoint && Linking.openURL(pendingInitPoint)}
+                            activeOpacity={0.85}
+                        >
+                            <Ionicons name="open-outline" size={18} color="#fff" />
+                            <Text style={styles.resultPrimaryBtnText}>Re-abrir Mercado Pago</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.resultSecondaryBtn, { flex: 0, alignSelf: 'stretch' }]}
+                            onPress={() => {
+                                const bookingId = pendingBookingRef.current?.id
+                                stopPaymentFlow()
+                                setPendingInitPoint(null)
+                                pendingBookingRef.current = null
+                                setPaymentPhase('idle')
+                                if (bookingId) {
+                                    cancelPendingBooking(bookingId).catch(() => {})
+                                }
+                                setBookingResult({ ok: false, message: 'Cancelaste el pago. No se generó ninguna reserva.' })
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.resultSecondaryBtnText}>Cancelar reserva</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             )}
 

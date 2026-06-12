@@ -80,3 +80,7 @@ export const getBookingPaymentStatus = async (
     const res = await axiosInstance.get(`/api/v1/bookings/${bookingId}/payment-status`);
     return res.data as BookingPaymentStatusResponse;
 };
+
+export const cancelPendingBooking = async (bookingId: number): Promise<void> => {
+    await axiosInstance.post(`/api/v1/bookings/${bookingId}/cancel-pending`);
+};
