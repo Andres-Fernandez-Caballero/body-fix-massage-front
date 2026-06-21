@@ -1,7 +1,7 @@
 export interface BookingState {
     /**
      * - `pending_payment` → awaiting MP payment (never shown in client "Mis turnos")
-     * - `pending`         → @deprecated legacy state; new bookings skip this and go straight to `confirmed`
+     * - `pending`         → (legacy) new bookings skip this and go straight to `confirmed`
      * - `confirmed`       → payment approved; booking is active
      * - `completed`       → session finished
      * - `cancelled`       → cancelled (with or without refund)

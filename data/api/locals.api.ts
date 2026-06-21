@@ -39,14 +39,8 @@ export interface CreateLocalBookingParams {
     notes?: string;
 }
 
-export interface CreateBookingPaymentInfo {
-    requires_payment: boolean;
-    init_point: string | null;
-}
-
 export interface CreateBookingResponse {
     data: Booking;
-    payment: CreateBookingPaymentInfo;
 }
 
 export const createLocalBooking = async (
@@ -60,7 +54,6 @@ export const createLocalBooking = async (
         start_time:      params.startTime,
         notes:           params.notes ?? '',
     });
-    // Backend devuelve { data: BookingResource, payment: { requires_payment, init_point } }
     return res.data as CreateBookingResponse;
 };
 

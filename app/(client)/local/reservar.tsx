@@ -1,12 +1,14 @@
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    ActivityIndicator, Image, AppState, Linking,
+    ActivityIndicator, Image, Platform,
 } from "react-native"
+import * as WebBrowser from 'expo-web-browser'
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useLocalBooking, useLocals } from "@/hooks/use-locals"
+import { usePayments } from "@/hooks/use-payments"
 import type { LocalSlot, Masajista } from "@/contracts/models/local.interface"
 import { getBookingPaymentStatus, cancelPendingBooking } from "@/data/api/locals.api"
 
@@ -34,6 +36,7 @@ export default function ReservarScreen() {
         slotsError, masajistasError,
         fetchEspecialidades, fetchSlots, fetchMasajistas, confirmBooking,
     } = useLocalBooking(numLocalId)
+    const { createPayment, isCreatingPayment } = usePayments()
 
     const local = locals.find(l => l.id === numLocalId)
 
@@ -44,29 +47,18 @@ export default function ReservarScreen() {
     const [bookingResult, setBookingResult]         = useState<BookingResult>(null)
 
     // ── Estado del flujo de pago ────────────────────────────────────────────────
-    // 'idle'         → sin pago en curso
-    // 'waiting_user' → browser externo abierto; esperando que el usuario complete el pago
-    // 'polling'      → usuario volvió a la app; consultando el estado del pago a la API
-    // 'timeout'      → se agotaron los reintentos sin confirmación
-    type PaymentPhase = 'idle' | 'waiting_user' | 'polling' | 'timeout'
-    const [paymentPhase, setPaymentPhase]         = useState<PaymentPhase>('idle')
-    const [pendingInitPoint, setPendingInitPoint] = useState<string | null>(null)
-    const pollingTimer                            = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const appStateSubscription                    = useRef<any>(null)
-    const linkingSubscription                     = useRef<any>(null)
-    const deepLinkReceivedRef                     = useRef(false)
-    const returnHandledRef                        = useRef(false)
-    const pendingBookingRef                       = useRef<{
+    // 'idle'    → sin pago en curso
+    // 'polling' → verificando estado del pago con la API (status 'pending' de MP)
+    // 'timeout' → se agotaron los reintentos sin confirmación
+    type PaymentPhase = 'idle' | 'polling' | 'timeout'
+    const [paymentPhase, setPaymentPhase] = useState<PaymentPhase>('idle')
+    const pollingTimer                    = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const pendingBookingRef               = useRef<{
         id: number; date: string; time: string; masajista: string
         especialidad: string | null; price: number | null
     } | null>(null)
 
-    // Cancela timers de polling activos y limpia listeners de browser/AppState
     const stopPaymentFlow = useCallback(() => {
-        appStateSubscription.current?.remove()
-        appStateSubscription.current = null
-        linkingSubscription.current?.remove()
-        linkingSubscription.current = null
         if (pollingTimer.current) { clearTimeout(pollingTimer.current); pollingTimer.current = null }
     }, [])
 
@@ -83,10 +75,7 @@ export default function ReservarScreen() {
             setSelectedMasajista(null)
             setBookingResult(null)
             setPaymentPhase('idle')
-            setPendingInitPoint(null)
-            pendingBookingRef.current   = null
-            deepLinkReceivedRef.current = false
-            returnHandledRef.current    = false
+            pendingBookingRef.current = null
             stopPaymentFlow()
             if (locals.length === 0) fetchLocals()
             fetchEspecialidades()
@@ -173,10 +162,18 @@ export default function ReservarScreen() {
                 startTime:      selectedSlot.startTime,
             })
 
-            const { data: booking, payment } = response
+            const booking = response.data
 
-            if (payment.requires_payment && payment.init_point) {
-                // ── Flujo con seña (Mercado Pago — browser externo) ───────
+            if (booking.state.name === 'pending_payment') {
+                // ── Flujo con seña (Mercado Pago) ─────────────────────────
+                const paymentResult = await createPayment({
+                    bookingId:     booking.id,
+                    paymentMethod: 'mercado_pago',
+                    platform:      Platform.OS === 'web' ? 'web' : 'native',
+                })
+                const paymentUrl = paymentResult.payment_url
+                if (!paymentUrl) throw new Error('No se recibió URL de pago.')
+
                 pendingBookingRef.current = {
                     id:           booking.id,
                     date:         selectedDay.date,
@@ -186,49 +183,39 @@ export default function ReservarScreen() {
                     price:        espPrice,
                 }
 
-                deepLinkReceivedRef.current = false
-                returnHandledRef.current    = false
-                setPendingInitPoint(payment.init_point)
-                setPaymentPhase('waiting_user')
+                // openAuthSessionAsync abre un in-app browser y espera hasta que MP
+                // redirige a bodyfix:// o el usuario cierra el browser manualmente.
+                const result = await WebBrowser.openAuthSessionAsync(paymentUrl, 'bodyfix://')
 
-                // Escuchar el deep link de retorno de MP → bodyfix://payment-callback
-                linkingSubscription.current = Linking.addEventListener('url', ({ url }) => {
-                    if (url.includes('payment-callback') && !deepLinkReceivedRef.current) {
-                        deepLinkReceivedRef.current = true
-                        linkingSubscription.current?.remove()
-                        linkingSubscription.current = null
+                if (result.type === 'success') {
+                    const redirectUrl = new URL(result.url)
+                    const status      = redirectUrl.searchParams.get('status')
+
+                    if (status === 'success') {
+                        const ref = pendingBookingRef.current
+                        pendingBookingRef.current = null
+                        setBookingResult({
+                            ok:           true,
+                            date:         ref?.date ?? '',
+                            time:         ref?.time ?? '',
+                            masajista:    ref?.masajista ?? '',
+                            especialidad: ref?.especialidad ?? null,
+                            price:        ref?.price ?? null,
+                        })
+                    } else if (status === 'failure') {
+                        pendingBookingRef.current = null
+                        setBookingResult({ ok: false, message: 'El pago fue rechazado. No se realizó ningún cobro.' })
+                    } else {
+                        // status === 'pending' → MP aún no confirmó, iniciar polling
                         startPolling(booking.id)
                     }
-                })
-
-                // Detectar cuando el usuario vuelve a la app (sea por redirect o cierre manual)
-                appStateSubscription.current = AppState.addEventListener('change', (nextState) => {
-                    if (nextState === 'active' && !returnHandledRef.current) {
-                        returnHandledRef.current = true
-                        appStateSubscription.current?.remove()
-                        appStateSubscription.current = null
-
-                        // Esperar 400ms para que el evento Linking llegue primero si hubo redirect
-                        setTimeout(() => {
-                            if (deepLinkReceivedRef.current) {
-                                // MP redirigió al deep link → polling ya iniciado
-                                return
-                            }
-                            // Sin deep link: el usuario volvió sin completar el pago,
-                            // o el pago fue aprobado pero auto_return no disparó (sandbox).
-                            // En ambos casos iniciamos polling — si el pago fue aprobado,
-                            // el polling lo confirma; si no, hace timeout y el usuario
-                            // puede verificar en "Mis turnos".
-                            const bookingId = pendingBookingRef.current?.id
-                            if (bookingId) {
-                                startPolling(bookingId)
-                            }
-                        }, 400)
-                    }
-                })
-
-                // Abrir el checkout en el browser externo (Safari en iOS, Chrome en Android)
-                Linking.openURL(payment.init_point)
+                } else {
+                    // Usuario cerró el browser sin completar el pago
+                    const bookingId = pendingBookingRef.current?.id
+                    pendingBookingRef.current = null
+                    if (bookingId) cancelPendingBooking(bookingId).catch(() => {})
+                    setBookingResult({ ok: false, message: 'Cancelaste el pago. No se generó ninguna reserva.' })
+                }
             } else {
                 // ── Flujo sin seña ────────────────────────────────────────
                 setBookingResult({
@@ -281,7 +268,7 @@ export default function ReservarScreen() {
 
             {/* Progress dots */}
             <View style={styles.progress}>
-                {(['fecha', 'hora', 'masajista', 'confirmar'] as Step[]).map((s, i) => (
+                {(['fecha', 'hora', 'masajista', 'confirmar'] as Step[]).map((s) => (
                     <View key={s} style={[styles.dot, step === s && styles.dotActive, ['hora','masajista','confirmar'].slice(0, (['fecha','hora','masajista','confirmar'] as Step[]).indexOf(step)).includes(s) && styles.dotDone]} />
                 ))}
             </View>
@@ -529,9 +516,9 @@ export default function ReservarScreen() {
             ) : (
                 <View style={styles.bottomBar}>
                     <TouchableOpacity
-                        style={[styles.nextButton, isBooking && styles.nextButtonDisabled]}
+                        style={[styles.nextButton, (isBooking || isCreatingPayment) && styles.nextButtonDisabled]}
                         onPress={handleConfirm}
-                        disabled={isBooking}
+                        disabled={isBooking || isCreatingPayment}
                         activeOpacity={0.85}
                     >
                         {isBooking
@@ -547,48 +534,6 @@ export default function ReservarScreen() {
                                   </>
                         }
                     </TouchableOpacity>
-                </View>
-            )}
-
-            {/* ── Overlay: browser externo abierto, esperando que el usuario pague ── */}
-            {paymentPhase === 'waiting_user' && (
-                <View style={styles.resultOverlay}>
-                    <View style={styles.resultCard}>
-                        <View style={styles.resultIconWrapper}>
-                            <View style={[styles.resultIconBg, { backgroundColor: '#EFF6FF' }]}>
-                                <Ionicons name="globe-outline" size={52} color="#3B82F6" />
-                            </View>
-                        </View>
-                        <Text style={styles.resultTitle}>Completá el pago</Text>
-                        <Text style={[styles.resultSubtitle, { marginBottom: 24 }]}>
-                            Se abrió Mercado Pago en el browser. Cuando termines, volvé a la app y verificaremos tu pago automáticamente.
-                        </Text>
-                        <TouchableOpacity
-                            style={[styles.resultPrimaryBtn, { alignSelf: 'stretch', marginBottom: 10 }]}
-                            onPress={() => pendingInitPoint && Linking.openURL(pendingInitPoint)}
-                            activeOpacity={0.85}
-                        >
-                            <Ionicons name="open-outline" size={18} color="#fff" />
-                            <Text style={styles.resultPrimaryBtnText}>Re-abrir Mercado Pago</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.resultSecondaryBtn, { flex: 0, alignSelf: 'stretch' }]}
-                            onPress={() => {
-                                const bookingId = pendingBookingRef.current?.id
-                                stopPaymentFlow()
-                                setPendingInitPoint(null)
-                                pendingBookingRef.current = null
-                                setPaymentPhase('idle')
-                                if (bookingId) {
-                                    cancelPendingBooking(bookingId).catch(() => {})
-                                }
-                                setBookingResult({ ok: false, message: 'Cancelaste el pago. No se generó ninguna reserva.' })
-                            }}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.resultSecondaryBtnText}>Cancelar reserva</Text>
-                        </TouchableOpacity>
-                    </View>
                 </View>
             )}
 

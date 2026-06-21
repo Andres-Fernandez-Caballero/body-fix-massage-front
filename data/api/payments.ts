@@ -7,15 +7,16 @@ export interface PaymentResponse {
 }
 
 export interface CreatePaymentRequest {
-    bookingId: string,
+    bookingId: number,
     paymentMethod: string,
+    platform: 'native' | 'web',
 }
 
 
 export const paymentsApi = {
-    createPayment: (data: CreatePaymentRequest) => axiosInstance.post('/api/v1/payments/create-payment', {
-        ...data,
-        booking_id: data.bookingId,
+    createPayment: (data: CreatePaymentRequest) => axiosInstance.post<PaymentResponse>('/api/v1/payments/create-payment-intent', {
+        booking_id:     data.bookingId,
         payment_method: data.paymentMethod,
+        platform:       data.platform,
     })
 }
