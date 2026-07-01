@@ -19,33 +19,49 @@ import { useAuth } from "@/hooks/use-auth"
 import { RegisterSchema } from "@/contracts/schemas/auth/RegisterSchema"
 import { useToast } from "@/hooks/use-toast"
 
+type Gender = 'male' | 'female' | 'other'
+
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: 'male',   label: 'Masculino' },
+  { value: 'female', label: 'Femenino'  },
+  { value: 'other',  label: 'Otro'      },
+]
+
 export default function ClientRegisterScreen() {
   const router = useRouter()
   const { register, authState, errors } = useAuth()
   const { toast } = useToast()
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [phone, setPhone] = useState("")
-  const [password, setPassword] = useState("")
+
+  const [name,            setName]            = useState("")
+  const [lastName,        setLastName]        = useState("")
+  const [email,           setEmail]           = useState("")
+  const [phone,           setPhone]           = useState("")
+  const [birthDate,       setBirthDate]       = useState("")
+  const [gender,          setGender]          = useState<Gender | "">("")
+  const [password,        setPassword]        = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
+  const [showPassword,    setShowPassword]    = useState(false)
 
   const isLoading = authState === "processing"
 
   const handleRegister = async () => {
     const result = RegisterSchema.safeParse({
       name,
+      last_name:            lastName,
+      phone,
+      birth_date:           birthDate,
+      gender:               gender || undefined,
       email,
       password,
       password_confirmation: confirmPassword,
     })
 
     if (!result.success) {
-      const firstError = result.error.errors[0]
+      const firstError = result.error.issues[0]
       toast({
-        title: "Datos inválidos",
+        title:       "Datos inválidos",
         description: firstError?.message ?? "Revisá tu información",
-        variant: "danger",
+        variant:     "danger",
       })
       return
     }
@@ -55,9 +71,9 @@ export default function ClientRegisterScreen() {
       router.replace("/(client)/explorer")
     } else {
       toast({
-        title: "Error al registrarse",
-        description: errors[0] ?? "No se pudo crear la cuenta. Intentá de nuevo.",
-        variant: "danger",
+        title:       "Error al registrarse",
+        description: errors?.[0] ?? "No se pudo crear la cuenta. Intentá de nuevo.",
+        variant:     "danger",
       })
     }
   }
@@ -81,13 +97,14 @@ export default function ClientRegisterScreen() {
         </View>
 
         <View style={styles.form}>
+          {/* Nombre */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nombre completo</Text>
+            <Text style={styles.label}>Nombre</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="person-outline" size={18} color={Colors.light.icon} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Ingresá tu nombre completo"
+                placeholder="Ingresá tu nombre"
                 placeholderTextColor={Colors.light.icon}
                 value={name}
                 onChangeText={setName}
@@ -95,6 +112,22 @@ export default function ClientRegisterScreen() {
             </View>
           </View>
 
+          {/* Apellido */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Apellido</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="person-outline" size={18} color={Colors.light.icon} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Ingresá tu apellido"
+                placeholderTextColor={Colors.light.icon}
+                value={lastName}
+                onChangeText={setLastName}
+              />
+            </View>
+          </View>
+
+          {/* Email */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Correo electrónico</Text>
             <View style={styles.inputWrapper}>
@@ -111,13 +144,14 @@ export default function ClientRegisterScreen() {
             </View>
           </View>
 
+          {/* Teléfono */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Número de teléfono</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="call-outline" size={18} color={Colors.light.icon} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Ingresá tu teléfono"
+                placeholder="Ej: 1136759311"
                 placeholderTextColor={Colors.light.icon}
                 value={phone}
                 onChangeText={setPhone}
@@ -126,6 +160,43 @@ export default function ClientRegisterScreen() {
             </View>
           </View>
 
+          {/* Fecha de nacimiento */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Fecha de nacimiento</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="calendar-outline" size={18} color={Colors.light.icon} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="AAAA-MM-DD"
+                placeholderTextColor={Colors.light.icon}
+                value={birthDate}
+                onChangeText={setBirthDate}
+                keyboardType="numeric"
+                maxLength={10}
+              />
+            </View>
+          </View>
+
+          {/* Género */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Género</Text>
+            <View style={styles.genderRow}>
+              {GENDER_OPTIONS.map(opt => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.genderChip, gender === opt.value && styles.genderChipActive]}
+                  onPress={() => setGender(opt.value)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.genderChipText, gender === opt.value && styles.genderChipTextActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Contraseña */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Contraseña</Text>
             <View style={styles.inputWrapper}>
@@ -144,6 +215,7 @@ export default function ClientRegisterScreen() {
             </View>
           </View>
 
+          {/* Confirmar contraseña */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Confirmar contraseña</Text>
             <View style={styles.inputWrapper}>
@@ -263,6 +335,31 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: 4,
+  },
+  genderRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  genderChip: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.light.border,
+    backgroundColor: Colors.light.card,
+    alignItems: "center",
+  },
+  genderChipActive: {
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
+  },
+  genderChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.light.text,
+  },
+  genderChipTextActive: {
+    color: "#fff",
   },
   registerButton: {
     backgroundColor: Colors.light.primary,

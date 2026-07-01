@@ -10,11 +10,14 @@ import {
   Linking,
   Platform,
 } from "react-native"
+import * as WebBrowser from 'expo-web-browser'
 import { Colors } from "@/constants/Colors"
 import BookingCard from "@/components/BookingCard"
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { useFocusEffect, useRouter } from "expo-router"
 import { useBookings } from "@/hooks/use-bookings"
+import { usePayments } from "@/hooks/use-payments"
+import { getBookingPaymentStatus, cancelPendingBooking } from "@/data/api/locals.api"
 import { LayoutWithNotifications } from "@/components/LayoutWithNotifications"
 import { Ionicons } from "@expo/vector-icons"
 import { Booking } from "@/contracts/models/booking.interface"
@@ -30,14 +33,95 @@ const STATUS_CONFIG: Record<BookingStatus, { label: string; bg: string; color: s
   expired:         { label: "Expirado",        bg: "#F3F4F6",                   color: "#9CA3AF",           icon: "alert-circle-outline"     },
 }
 
+type PayPhase = 'idle' | 'creating' | 'polling' | 'timeout'
+
 function BookingDetailModal({
   booking,
   onClose,
+  onPaymentSuccess,
 }: {
   booking: Booking
   onClose: () => void
+  onPaymentSuccess: () => void
 }) {
   const status = STATUS_CONFIG[booking.state.name as BookingStatus]
+  const { createPayment } = usePayments()
+  const [payPhase, setPayPhase]   = useState<PayPhase>('idle')
+  const [payError, setPayError]   = useState<string | null>(null)
+  const pollingTimer              = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const stopPolling = () => {
+    if (pollingTimer.current) { clearTimeout(pollingTimer.current); pollingTimer.current = null }
+  }
+
+  const startPolling = (bookingId: number, attempt = 1) => {
+    const MAX = 20
+    setPayPhase('polling')
+    getBookingPaymentStatus(bookingId)
+      .then(result => {
+        if (result.payment_status === 'approved') {
+          stopPolling()
+          onPaymentSuccess()
+        } else if (result.payment_status === 'rejected') {
+          stopPolling()
+          setPayPhase('idle')
+          setPayError('El pago fue rechazado. No se realizó ningún cobro.')
+        } else if (attempt < MAX) {
+          pollingTimer.current = setTimeout(() => startPolling(bookingId, attempt + 1), 3000)
+        } else {
+          stopPolling()
+          setPayPhase('timeout')
+        }
+      })
+      .catch(() => {
+        if (attempt < MAX) {
+          pollingTimer.current = setTimeout(() => startPolling(bookingId, attempt + 1), 3000)
+        } else {
+          stopPolling()
+          setPayPhase('timeout')
+        }
+      })
+  }
+
+  const handlePay = async () => {
+    setPayError(null)
+    setPayPhase('creating')
+    try {
+      const paymentResult = await createPayment({
+        bookingId:     booking.id,
+        paymentMethod: 'mercado_pago',
+        platform:      Platform.OS === 'web' ? 'web' : 'native',
+      })
+      const paymentUrl = paymentResult.payment_url
+      if (!paymentUrl) throw new Error('No se recibió URL de pago.')
+
+      const result = await WebBrowser.openAuthSessionAsync(paymentUrl, 'bodyfix://')
+
+      if (result.type === 'success') {
+        const redirectUrl = new URL(result.url)
+        const status      = redirectUrl.searchParams.get('status')
+        if (status === 'success' || status === 'approved') {
+          stopPolling()
+          onPaymentSuccess()
+        } else if (status === 'failure' || status === 'rejected') {
+          setPayPhase('idle')
+          setPayError('El pago fue rechazado. No se realizó ningún cobro.')
+        } else {
+          startPolling(booking.id)
+        }
+      } else {
+        // Usuario cerró el browser
+        cancelPendingBooking(booking.id).catch(() => {})
+        setPayPhase('idle')
+        setPayError('Cancelaste el pago.')
+      }
+    } catch (err: any) {
+      setPayPhase('idle')
+      setPayError(err?.response?.data?.message ?? err?.message ?? 'No se pudo procesar el pago.')
+    }
+  }
+
+  const isPaying = payPhase === 'creating' || payPhase === 'polling'
 
   const fullAddress = [booking.localDireccion, booking.localLocalidad]
     .filter(Boolean)
@@ -117,6 +201,50 @@ function BookingDetailModal({
               <DetailRow icon="document-text-outline" label="Notas"  value={booking.notes} />
             ) : null}
 
+            {/* ── Pago pendiente ── */}
+            {booking.state.name === 'pending_payment' && (
+              <View style={modalStyles.paySection}>
+                {payError ? (
+                  <View style={modalStyles.payErrorBox}>
+                    <Ionicons name="alert-circle-outline" size={16} color={Colors.light.error} />
+                    <Text style={modalStyles.payErrorText}>{payError}</Text>
+                  </View>
+                ) : null}
+
+                {payPhase === 'timeout' ? (
+                  <View style={modalStyles.payErrorBox}>
+                    <Ionicons name="warning-outline" size={16} color="#D97706" />
+                    <Text style={[modalStyles.payErrorText, { color: '#D97706' }]}>
+                      No pudimos confirmar el pago. Revisá "Mis turnos" en unos minutos.
+                    </Text>
+                  </View>
+                ) : null}
+
+                <TouchableOpacity
+                  style={[modalStyles.payButton, isPaying && { opacity: 0.6 }]}
+                  onPress={handlePay}
+                  disabled={isPaying}
+                  activeOpacity={0.85}
+                >
+                  {isPaying ? (
+                    <>
+                      <ActivityIndicator color="#fff" size="small" />
+                      <Text style={modalStyles.payButtonText}>
+                        {payPhase === 'polling' ? 'Verificando pago…' : 'Iniciando pago…'}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="card-outline" size={18} color="#fff" />
+                      <Text style={modalStyles.payButtonText}>
+                        {payPhase === 'timeout' ? 'Reintentar pago' : 'Pagar seña'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* ── Ubicación ── */}
             {fullAddress ? (
               <View style={modalStyles.locationSection}>
@@ -156,10 +284,8 @@ export default function BookingsScreen() {
     }, [fetchBookings])
   )
 
-  // pending_payment is intentionally excluded — those bookings are invisible to the
-  // client until payment is confirmed and the state transitions to "confirmed".
   const pendingBookings = bookings.filter(
-    (b) => b.state.name === "pending" || b.state.name === "confirmed"
+    (b) => b.state.name === "pending_payment" || b.state.name === "pending" || b.state.name === "confirmed"
   )
   const historyBookings = bookings.filter(
     (b) => b.state.name === "completed" || b.state.name === "cancelled" || b.state.name === "expired"
@@ -265,6 +391,10 @@ export default function BookingsScreen() {
         <BookingDetailModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
+          onPaymentSuccess={() => {
+            setSelectedBooking(null)
+            fetchBookings()
+          }}
         />
       )}
     </>
@@ -472,5 +602,37 @@ const modalStyles = StyleSheet.create({
     color: "#fff",
     fontSize: 13,
     fontWeight: "700",
+  },
+  paySection: {
+    gap: 12,
+    marginTop: 4,
+  },
+  payButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.light.primary,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  payButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  payErrorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.light.errorLight,
+    borderRadius: 10,
+    padding: 12,
+  },
+  payErrorText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.light.error,
+    lineHeight: 18,
   },
 })

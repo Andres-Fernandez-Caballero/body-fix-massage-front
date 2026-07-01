@@ -24,6 +24,10 @@ interface LoginRequest {
 
 interface RegisterRequest {
     name: string;
+    last_name: string;
+    phone: string;
+    birth_date: string;
+    gender: string;
     email: string;
     password: string;
     password_confirmation: string;
@@ -39,7 +43,7 @@ interface UpdateProfileRequest {
 
 export const authApi = {
     login: (data: LoginRequest) => axiosInstance.post<LoginResponse>('/api/v1/auth/login', data),
-    register: (data: RegisterRequest) => axiosInstance.post<RegisterResponse>('/api/v1/auth/register', data),
+    register: (data: RegisterRequest) => axiosInstance.post<RegisterResponse>('/api/v1/auth/register/client', data),
     logout: () => axiosInstance.post<LogoutResponse>('/api/v1/auth/logout'),
     forgotPassword: (email: string) => axiosInstance.post('/api/v1/auth/forgot-password', { email }),
     updateProfile: (data: UpdateProfileRequest) => axiosInstance.put<{ user: User }>('/api/v1/users/me', data),

@@ -109,7 +109,7 @@ export function EditProfileScreen({ accentColor, accentLightColor }: EditProfile
     if (!result.success) {
       toast({
         title: "Datos inválidos",
-        description: result.error.errors[0]?.message ?? "Revisá los campos ingresados.",
+        description: result.error.issues[0]?.message ?? "Revisá los campos ingresados.",
         variant: "danger",
       })
       return
