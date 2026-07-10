@@ -33,10 +33,13 @@
       },
       "package": "com.bodyfix.app",
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "READ_MEDIA_IMAGES",
-        "READ_EXTERNAL_STORAGE"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ],
       "config": {
         "googleMaps": {
@@ -66,6 +69,12 @@
       ],
       "expo-web-browser"
     ],
-    "scheme": "bodyfix"
+    "scheme": "bodyfix",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f9ca1b51-0a14-4820-bf35-cabcdb689145"
+      }
+    }
   }
 }
