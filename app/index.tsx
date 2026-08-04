@@ -74,13 +74,17 @@ export default function WelcomeScreen() {
   =========================== */
   useEffect(() => {
     if (authState === "authenticated") {
+      if (user?.state?.isActive === false) {
+        router.replace("/account-inactive")
+        return
+      }
       router.replace(
         user?.role === "massage_therapist"
         ? "(therapist)/dashboard"
         : "(client)/explorer"
       )
     }
-  }, [authState, user])
+  }, [authState, user?.role, user?.state?.isActive])
 
   return (
     <View style={styles.container}>
@@ -102,7 +106,11 @@ export default function WelcomeScreen() {
             </View>
             <Text style={styles.logo}>BodyFix</Text>
             <Text style={styles.tagline}>
-              Masajes profesionales, a tu alcance
+              Masajes profesionales, a tu alcance {process.EXPO_PUBLIC_API_URL}
+            </Text>
+
+            <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, marginTop: 4 }}>
+              Backend: {process.env.EXPO_PUBLIC_API_URL}
             </Text>
           </View>
 

@@ -88,6 +88,7 @@ export function useAuth() {
 
       } catch (error: any) {
         const apiError = parseApiError(error);
+        if (__DEV__) console.error("[login] failed:", apiError, error);
         setErrors([apiError.message]);
         setAuthState("error");
         return 'unauthorized'

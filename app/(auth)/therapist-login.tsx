@@ -48,6 +48,9 @@ export default function TherapistLoginScreen() {
     if (loginResult === 'authenticated') {
       const currentUser = useAuthStore.getState().user;
       console.log(currentUser)
+      if (currentUser?.state?.isActive === false) {
+        return router.replace("/account-inactive")
+      }
       if (currentUser?.role === 'admin'){
          toast({
         title: "Usuario sin Rol habilitado",

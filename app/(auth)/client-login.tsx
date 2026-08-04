@@ -45,6 +45,9 @@ export default function ClientLoginScreen() {
     const loginResult = await login(result.data);
     if (loginResult === 'authenticated') {
       const currentUser = useAuthStore.getState().user;
+      if (currentUser?.state?.isActive === false) {
+        return router.replace("/account-inactive")
+      }
       if (!currentUser?.role) {
         toast({
           title: "Sin rol habilitado",

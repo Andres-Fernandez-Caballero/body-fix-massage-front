@@ -41,6 +41,7 @@ export default function RootLayout() {
           <Stack.Screen name="(client)" />
           <Stack.Screen name="(therapist)" />
           <Stack.Screen name="payment-callback" />
+          <Stack.Screen name="account-inactive" />
         </Stack>
         <Toaster />
       </SafeAreaProvider>

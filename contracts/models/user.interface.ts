@@ -3,14 +3,16 @@ export interface User {
     name: string;
     lastName: string;
     email: string;
+    state: State;
     role: 'admin' | 'client' | 'massage_therapist';
     profilePicture: string | null;
 }
 
 export interface State {
-    name: string;
+    color: string;
     label: string;
-    description: string;
+    description: string
+    isActive: boolean;
 }
 
 export interface MetaLink {

@@ -46,6 +46,14 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const status = error?.response?.status;
 
+    if (__DEV__) {
+      console.error(
+        `[axios] ${error.config?.method?.toUpperCase()} ${error.config?.baseURL}${error.config?.url}`,
+        status ? `-> ${status}` : '-> no response (network error / timeout)',
+        error?.response?.data ?? error.message,
+      );
+    }
+
     // --- 401 → logout automático (solo en rutas protegidas, no en login/register) ---
     const requestUrl = error.config?.url ?? '';
     const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
