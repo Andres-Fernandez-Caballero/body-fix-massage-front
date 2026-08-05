@@ -6,11 +6,10 @@ import * as WebBrowser from 'expo-web-browser'
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useLocalBooking, useLocals } from "@/hooks/use-locals"
 import { usePayments } from "@/hooks/use-payments"
 import type { LocalSlot, Masajista } from "@/contracts/models/local.interface"
-import { getBookingPaymentStatus, cancelPendingBooking } from "@/data/api/locals.api"
 
 type Step = 'fecha' | 'hora' | 'masajista' | 'confirmar'
 
@@ -46,22 +45,6 @@ export default function ReservarScreen() {
     const [selectedMasajista, setSelectedMasajista] = useState<Masajista | null>(null)
     const [bookingResult, setBookingResult]         = useState<BookingResult>(null)
 
-    // ── Estado del flujo de pago ────────────────────────────────────────────────
-    // 'idle'    → sin pago en curso
-    // 'polling' → verificando estado del pago con la API (status 'pending' de MP)
-    // 'timeout' → se agotaron los reintentos sin confirmación
-    type PaymentPhase = 'idle' | 'polling' | 'timeout'
-    const [paymentPhase, setPaymentPhase] = useState<PaymentPhase>('idle')
-    const pollingTimer                    = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const pendingBookingRef               = useRef<{
-        id: number; date: string; time: string; masajista: string
-        especialidad: string | null; price: number | null
-    } | null>(null)
-
-    const stopPaymentFlow = useCallback(() => {
-        if (pollingTimer.current) { clearTimeout(pollingTimer.current); pollingTimer.current = null }
-    }, [])
-
     // Resetear TODO el estado de booking cada vez que la pantalla recibe foco.
     // Esto es necesario porque en Expo Router con <Tabs> las pantallas NO se
     // desmontan al navegar a otro tab — el componente queda vivo en memoria.
@@ -74,14 +57,9 @@ export default function ReservarScreen() {
             setSelectedSlot(null)
             setSelectedMasajista(null)
             setBookingResult(null)
-            setPaymentPhase('idle')
-            pendingBookingRef.current = null
-            stopPaymentFlow()
             if (locals.length === 0) fetchLocals()
             fetchEspecialidades()
             fetchSlots()
-
-            return () => { stopPaymentFlow() }
         }, [numLocalId])
     )
 
@@ -110,48 +88,6 @@ export default function ReservarScreen() {
         else router.back()
     }
 
-    // ── Polling: consulta el estado del pago hasta que haya resultado ──────────
-    const startPolling = useCallback((bookingId: number, attempt = 1) => {
-        const MAX_ATTEMPTS = 20  // 20 × 3 s = 60 s máximo
-        setPaymentPhase('polling')
-
-        getBookingPaymentStatus(bookingId)
-            .then((result) => {
-                if (result.payment_status === 'approved') {
-                    stopPaymentFlow()
-                    setPaymentPhase('idle')
-                    const ref = pendingBookingRef.current
-                    pendingBookingRef.current = null
-                    setBookingResult({
-                        ok:           true,
-                        date:         ref?.date ?? '',
-                        time:         ref?.time ?? '',
-                        masajista:    ref?.masajista ?? '',
-                        especialidad: ref?.especialidad ?? null,
-                        price:        ref?.price ?? null,
-                    })
-                } else if (result.payment_status === 'rejected') {
-                    stopPaymentFlow()
-                    setPaymentPhase('idle')
-                    pendingBookingRef.current = null
-                    setBookingResult({ ok: false, message: 'El pago fue rechazado. No se realizó ningún cobro.' })
-                } else if (attempt < MAX_ATTEMPTS) {
-                    pollingTimer.current = setTimeout(() => startPolling(bookingId, attempt + 1), 3000)
-                } else {
-                    stopPaymentFlow()
-                    setPaymentPhase('timeout')
-                }
-            })
-            .catch(() => {
-                if (attempt < MAX_ATTEMPTS) {
-                    pollingTimer.current = setTimeout(() => startPolling(bookingId, attempt + 1), 3000)
-                } else {
-                    stopPaymentFlow()
-                    setPaymentPhase('timeout')
-                }
-            })
-    }, [stopPaymentFlow])
-
     const handleConfirm = async () => {
         if (!selectedDay || !selectedSlot || !selectedMasajista) return
         try {
@@ -174,47 +110,15 @@ export default function ReservarScreen() {
                 const paymentUrl = paymentResult.payment_url
                 if (!paymentUrl) throw new Error('No se recibió URL de pago.')
 
-                pendingBookingRef.current = {
-                    id:           booking.id,
-                    date:         selectedDay.date,
-                    time:         `${selectedSlot.startTime} – ${selectedSlot.endTime}`,
-                    masajista:    selectedMasajista.nombre,
-                    especialidad: espNombre,
-                    price:        espPrice,
-                }
-
-                // openAuthSessionAsync abre un in-app browser y espera hasta que MP
-                // redirige a bodyfix:// o el usuario cierra el browser manualmente.
-                const result = await WebBrowser.openAuthSessionAsync(paymentUrl, 'bodyfix://')
-
-                if (result.type === 'success') {
-                    const redirectUrl = new URL(result.url)
-                    const status      = redirectUrl.searchParams.get('status')
-
-                    if (status === 'success') {
-                        const ref = pendingBookingRef.current
-                        pendingBookingRef.current = null
-                        setBookingResult({
-                            ok:           true,
-                            date:         ref?.date ?? '',
-                            time:         ref?.time ?? '',
-                            masajista:    ref?.masajista ?? '',
-                            especialidad: ref?.especialidad ?? null,
-                            price:        ref?.price ?? null,
-                        })
-                    } else if (status === 'failure') {
-                        pendingBookingRef.current = null
-                        setBookingResult({ ok: false, message: 'El pago fue rechazado. No se realizó ningún cobro.' })
-                    } else {
-                        // status === 'pending' → MP aún no confirmó, iniciar polling
-                        startPolling(booking.id)
-                    }
+                // El resultado del pago se resuelve en /payment-callback, al que se
+                // llega por deep link (bodyfix://payment-callback, nativo) o por
+                // redirección real del backend (web) una vez que Mercado Pago confirma.
+                // No esperamos ningún resultado acá: evita la carrera entre esta pantalla
+                // y la navegación automática de Expo Router hacia esa ruta.
+                if (Platform.OS === 'web') {
+                    window.location.href = paymentUrl
                 } else {
-                    // Usuario cerró el browser sin completar el pago
-                    const bookingId = pendingBookingRef.current?.id
-                    pendingBookingRef.current = null
-                    if (bookingId) cancelPendingBooking(bookingId).catch(() => {})
-                    setBookingResult({ ok: false, message: 'Cancelaste el pago. No se generó ninguna reserva.' })
+                    await WebBrowser.openBrowserAsync(paymentUrl)
                 }
             } else {
                 // ── Flujo sin seña ────────────────────────────────────────
@@ -534,48 +438,6 @@ export default function ReservarScreen() {
                                   </>
                         }
                     </TouchableOpacity>
-                </View>
-            )}
-
-            {/* ── Overlay de flujo de pago (polling / timeout) ── */}
-            {(paymentPhase === 'polling' || paymentPhase === 'timeout') && (
-                <View style={styles.resultOverlay}>
-                    <View style={styles.resultCard}>
-                        {paymentPhase === 'timeout' ? (
-                            <>
-                                <View style={styles.resultIconWrapper}>
-                                    <View style={[styles.resultIconBg, { backgroundColor: '#FEF3C7' }]}>
-                                        <Ionicons name="warning-outline" size={52} color="#D97706" />
-                                    </View>
-                                </View>
-                                <Text style={styles.resultTitle}>No pudimos confirmar el pago</Text>
-                                <Text style={[styles.resultErrorMsg, { marginBottom: 24 }]}>
-                                    Revisá el estado de tu reserva en "Mis turnos". Si el pago fue procesado, aparecerá actualizado en breve.
-                                </Text>
-                                <TouchableOpacity
-                                    style={styles.resultPrimaryBtn}
-                                    onPress={() => {
-                                        setPaymentPhase('idle')
-                                        pendingBookingRef.current = null
-                                        router.replace('/(client)/bookings')
-                                    }}
-                                    activeOpacity={0.85}
-                                >
-                                    <Ionicons name="calendar" size={18} color="#fff" />
-                                    <Text style={styles.resultPrimaryBtnText}>Ver mis turnos</Text>
-                                </TouchableOpacity>
-                            </>
-                        ) : (
-                            /* polling */
-                            <>
-                                <ActivityIndicator size="large" color={Colors.light.primary} style={{ marginBottom: 20 }} />
-                                <Text style={styles.resultTitle}>Verificando tu pago…</Text>
-                                <Text style={styles.resultSubtitle}>
-                                    Estamos consultando el estado con Mercado Pago. Esto puede tardar unos segundos.
-                                </Text>
-                            </>
-                        )}
-                    </View>
                 </View>
             )}
 

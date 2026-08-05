@@ -15,8 +15,8 @@ export function useNotifications() {
         try {
             const response = await NotificationApi.getNotifications();
             console.log("notifications", response)
-            setNotifications(response.data);
-            setUnreadCount(response.meta.unreadCount);
+            setNotifications(Array.isArray(response?.data) ? response.data : []);
+            setUnreadCount(response?.meta?.unreadCount ?? 0);
         } catch (error) {
             console.error("Error loading notifications:", error);
         }

@@ -20,7 +20,8 @@ export function useLocals() {
         setLoading(true);
         setError(null);
         try {
-            setLocals(await getLocals());
+            const result = await getLocals();
+            setLocals(Array.isArray(result) ? result : []);
         } catch (e: unknown) {
             setError(parseApiError(e).message);
         } finally {
@@ -43,7 +44,8 @@ export function useLocalBooking(localId: number) {
 
     const fetchEspecialidades = useCallback(async () => {
         try {
-            setEspecialidades(await getLocalEspecialidades(localId));
+            const result = await getLocalEspecialidades(localId);
+            setEspecialidades(Array.isArray(result) ? result : []);
         } catch {
             // error no crítico, la reserva puede continuar sin especialidades
         }
@@ -53,7 +55,8 @@ export function useLocalBooking(localId: number) {
         setSlotsLoading(true);
         setSlotsError(null);
         try {
-            setSlots(await getLocalSlots(localId));
+            const result = await getLocalSlots(localId);
+            setSlots(Array.isArray(result) ? result : []);
         } catch {
             setSlotsError('No se pudo cargar la disponibilidad. Intentá de nuevo.');
         } finally {
@@ -70,7 +73,8 @@ export function useLocalBooking(localId: number) {
         setMasajistas([]);
         setMasajistasError(null);
         try {
-            setMasajistas(await getLocalMasajistas(localId, date, time, especialidadId));
+            const result = await getLocalMasajistas(localId, date, time, especialidadId);
+            setMasajistas(Array.isArray(result) ? result : []);
         } catch {
             setMasajistasError('No se pudo cargar los masajistas disponibles. Intentá de nuevo.');
         } finally {
