@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Dimensions, StatusBar } from "react-native"
-import { styles } from './details-style'
+import { styles } from './_details-style'
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"

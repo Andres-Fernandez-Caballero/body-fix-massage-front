@@ -16,6 +16,7 @@ import { useNotifications } from "@/hooks/use-notifications"
 import { useEffect } from "react"
 import { secureGet } from "@/lib/store"
 import { Ionicons } from "@expo/vector-icons"
+import Constants from "expo-constants"
 
 const { width, height } = Dimensions.get("window")
 
@@ -111,6 +112,10 @@ export default function WelcomeScreen() {
 
             <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, marginTop: 4 }}>
               Backend: {process.env.EXPO_PUBLIC_API_URL}
+            </Text>
+
+            <Text style={styles.versionText}>
+              v{Constants.expoConfig?.version ?? "?"}
             </Text>
           </View>
 
@@ -231,6 +236,12 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.78)",
     fontWeight: "400",
     letterSpacing: 0.2,
+  },
+  versionText: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.5)",
+    fontWeight: "500",
+    marginTop: 4,
   },
   illustration: {
     width: width * 0.72,

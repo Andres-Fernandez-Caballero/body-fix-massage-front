@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import {
   View,
   Text,
@@ -12,12 +12,33 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native"
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker"
 import { useRouter } from "expo-router"
 import { Colors } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
 import { useAuth } from "@/hooks/use-auth"
 import { RegisterSchema } from "@/contracts/schemas/auth/RegisterSchema"
 import { useToast } from "@/hooks/use-toast"
+
+// ── Helpers de fecha: state interno en Date, formato AAAA-MM-DD para el schema ──
+function parseDateString(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+function formatDateToString(date: Date): string {
+  const year  = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day   = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatDateForDisplay(value: string): string {
+  const date = parseDateString(value)
+  if (!date) return ''
+  return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
 
 type Gender = 'male' | 'female' | 'other'
 
@@ -37,6 +58,7 @@ export default function ClientRegisterScreen() {
   const [email,           setEmail]           = useState("")
   const [phone,           setPhone]           = useState("")
   const [birthDate,       setBirthDate]       = useState("")
+  const [showDatePicker,  setShowDatePicker]  = useState(false)
   const [gender,          setGender]          = useState<Gender | "">("")
   const [password,        setPassword]        = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -139,6 +161,7 @@ export default function ClientRegisterScreen() {
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
+                inputMode="email"
                 autoCapitalize="none"
               />
             </View>
@@ -156,6 +179,7 @@ export default function ClientRegisterScreen() {
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
+                inputMode="tel"
               />
             </View>
           </View>
@@ -163,18 +187,62 @@ export default function ClientRegisterScreen() {
           {/* Fecha de nacimiento */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Fecha de nacimiento</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="calendar-outline" size={18} color={Colors.light.icon} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="AAAA-MM-DD"
-                placeholderTextColor={Colors.light.icon}
-                value={birthDate}
-                onChangeText={setBirthDate}
-                keyboardType="numeric"
-                maxLength={10}
-              />
-            </View>
+            {Platform.OS === "web" ? (
+              <View style={styles.inputWrapper}>
+                <Ionicons name="calendar-outline" size={18} color={Colors.light.icon} style={styles.inputIcon} />
+                {React.createElement("input", {
+                  type: "date",
+                  value: birthDate,
+                  max: formatDateToString(new Date()),
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => setBirthDate(e.target.value),
+                  style: {
+                    flex: 1,
+                    border: "none",
+                    outline: "none",
+                    background: "transparent",
+                    fontSize: 15,
+                    color: Colors.light.text,
+                    fontFamily: "inherit",
+                    paddingTop: 14,
+                    paddingBottom: 14,
+                  } as React.CSSProperties,
+                })}
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.inputWrapper}
+                  onPress={() => setShowDatePicker(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="calendar-outline" size={18} color={Colors.light.icon} style={styles.inputIcon} />
+                  <Text style={[styles.input, !birthDate && { color: Colors.light.icon }]}>
+                    {birthDate ? formatDateForDisplay(birthDate) : "Seleccioná tu fecha de nacimiento"}
+                  </Text>
+                </TouchableOpacity>
+
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={parseDateString(birthDate) ?? new Date(2000, 0, 1)}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    maximumDate={new Date()}
+                    onChange={(event: DateTimePickerEvent, selectedDate?: Date) => {
+                      if (Platform.OS === "android") setShowDatePicker(false)
+                      if (event.type === "set" && selectedDate) {
+                        setBirthDate(formatDateToString(selectedDate))
+                      }
+                    }}
+                  />
+                )}
+
+                {Platform.OS === "ios" && showDatePicker && (
+                  <TouchableOpacity style={styles.iosDoneButton} onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.iosDoneButtonText}>Listo</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
           </View>
 
           {/* Género */}
@@ -332,6 +400,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.light.text,
     paddingVertical: 14,
+  },
+  iosDoneButton: {
+    alignSelf: "flex-end",
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: Colors.light.primary,
+  },
+  iosDoneButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
   },
   eyeButton: {
     padding: 4,

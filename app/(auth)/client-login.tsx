@@ -129,6 +129,7 @@ export default function ClientLoginScreen() {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  inputMode="email"
                   autoCorrect={false}
                 />
               </View>
@@ -149,6 +150,7 @@ export default function ClientLoginScreen() {
                   placeholder="Ingresá tu contraseña"
                   placeholderTextColor={Colors.light.icon}
                   value={password}
+                  autoCapitalize="none"
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
