@@ -17,6 +17,7 @@ import { useCallback, useRef, useState } from "react"
 import { useFocusEffect, useRouter } from "expo-router"
 import { useBookings } from "@/hooks/use-bookings"
 import { usePayments } from "@/hooks/use-payments"
+import { useToast } from "@/hooks/use-toast"
 import { getBookingPaymentStatus, cancelPendingBooking } from "@/data/api/locals.api"
 import { LayoutWithNotifications } from "@/components/LayoutWithNotifications"
 import { Ionicons } from "@expo/vector-icons"
@@ -39,16 +40,70 @@ function BookingDetailModal({
   booking,
   onClose,
   onPaymentSuccess,
+  onCancelled,
 }: {
   booking: Booking
   onClose: () => void
   onPaymentSuccess: () => void
+  onCancelled: () => void
 }) {
   const status = STATUS_CONFIG[booking.state.name as BookingStatus]
   const { createPayment } = usePayments()
+  const { cancelBooking } = useBookings()
+  const { toast } = useToast()
   const [payPhase, setPayPhase]   = useState<PayPhase>('idle')
   const [payError, setPayError]   = useState<string | null>(null)
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const pollingTimer              = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const canCancel = booking.state.name === 'pending' || booking.state.name === 'confirmed' || booking.state.name === 'pending_payment'
+
+  const handleCancel = () => setShowCancelConfirm(true)
+
+  const openSupportEmail = async () => {
+    const url = "mailto:soporte@bodyfix.com?subject=Consulta%20de%20soporte%20-%20BodyFix"
+    const canOpen = await Linking.canOpenURL(url)
+    if (!canOpen) {
+      toast({
+        title: "Sin app de correo",
+        description: "No encontramos una app de correo configurada en tu dispositivo. Escribinos a soporte@bodyfix.com",
+        variant: "danger",
+      })
+      return
+    }
+    await Linking.openURL(url)
+  }
+
+  const confirmCancel = async () => {
+    setShowCancelConfirm(false)
+    setIsCancelling(true)
+    try {
+      const result = await cancelBooking(booking.id)
+      toast({
+        title: "Turno cancelado",
+        description: (
+          <Text>
+            {result.message}{"\n"}Por cualquier consulta contactá a{" "}
+            <Text style={{ fontWeight: "700", textDecorationLine: "underline" }} onPress={openSupportEmail}>
+              soporte
+            </Text>
+            .
+          </Text>
+        ),
+        variant: "warning",
+      })
+      onCancelled()
+    } catch (err: any) {
+      toast({
+        title: "No se pudo cancelar",
+        description: err?.response?.data?.message ?? err?.message ?? "Intentá de nuevo.",
+        variant: "danger",
+      })
+    } finally {
+      setIsCancelling(false)
+    }
+  }
 
   const stopPolling = () => {
     if (pollingTimer.current) { clearTimeout(pollingTimer.current); pollingTimer.current = null }
@@ -155,6 +210,7 @@ function BookingDetailModal({
   )
 
   return (
+    <>
     <Modal
       visible
       transparent
@@ -195,7 +251,7 @@ function BookingDetailModal({
               <DetailRow icon="person-outline"   label="Masajista"    value={booking.therapistName} />
             ) : null}
             {booking.price != null ? (
-              <DetailRow icon="cash-outline"     label="Seña abonada" value={`$${Number(booking.price).toLocaleString("es-AR")}`} />
+              <DetailRow icon="cash-outline"     label="Pago abonado" value={`$${Number(booking.price).toLocaleString("es-AR")}`} />
             ) : null}
             {booking.notes ? (
               <DetailRow icon="document-text-outline" label="Notas"  value={booking.notes} />
@@ -237,12 +293,31 @@ function BookingDetailModal({
                     <>
                       <Ionicons name="card-outline" size={18} color="#fff" />
                       <Text style={modalStyles.payButtonText}>
-                        {payPhase === 'timeout' ? 'Reintentar pago' : 'Pagar seña'}
+                        {payPhase === 'timeout' ? 'Reintentar pago' : 'Pagar monto'}
                       </Text>
                     </>
                   )}
                 </TouchableOpacity>
               </View>
+            )}
+
+            {/* ── Cancelar turno ── */}
+            {canCancel && (
+              <TouchableOpacity
+                style={[modalStyles.cancelButton, isCancelling && { opacity: 0.6 }]}
+                onPress={handleCancel}
+                disabled={isCancelling}
+                activeOpacity={0.85}
+              >
+                {isCancelling ? (
+                  <ActivityIndicator color={Colors.light.error} size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="close-circle-outline" size={18} color={Colors.light.error} />
+                    <Text style={modalStyles.cancelButtonText}>Cancelar turno</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             )}
 
             {/* ── Ubicación ── */}
@@ -269,6 +344,37 @@ function BookingDetailModal({
         </View>
       </View>
     </Modal>
+
+    <Modal visible={showCancelConfirm} transparent animationType="fade" onRequestClose={() => setShowCancelConfirm(false)}>
+      <View style={modalStyles.confirmOverlay}>
+        <TouchableOpacity style={modalStyles.backdrop} onPress={() => setShowCancelConfirm(false)} activeOpacity={1} />
+        <View style={modalStyles.confirmCard}>
+          <View style={modalStyles.confirmIconWrapper}>
+            <Ionicons name="close-circle-outline" size={32} color={Colors.light.error} />
+          </View>
+          <Text style={modalStyles.confirmTitle}>Cancelar turno</Text>
+          <Text style={modalStyles.confirmMessage}>¿Estás seguro que querés cancelar este turno?</Text>
+
+          <View style={modalStyles.confirmActions}>
+            <TouchableOpacity
+              style={modalStyles.confirmSecondaryBtn}
+              onPress={() => setShowCancelConfirm(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={modalStyles.confirmSecondaryBtnText}>No</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={modalStyles.confirmDestructiveBtn}
+              onPress={confirmCancel}
+              activeOpacity={0.85}
+            >
+              <Text style={modalStyles.confirmDestructiveBtnText}>Sí, cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+    </>
   )
 }
 
@@ -394,6 +500,9 @@ export default function BookingsScreen() {
           onPaymentSuccess={() => {
             setSelectedBooking(null)
             fetchBookings()
+          }}
+          onCancelled={() => {
+            setSelectedBooking(null)
           }}
         />
       )}
@@ -634,5 +743,95 @@ const modalStyles = StyleSheet.create({
     fontSize: 13,
     color: Colors.light.error,
     lineHeight: 18,
+  },
+  cancelButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.light.error,
+    paddingVertical: 13,
+    borderRadius: 14,
+    marginTop: 4,
+  },
+  cancelButtonText: {
+    color: Colors.light.error,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  confirmOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  confirmCard: {
+    width: "100%",
+    backgroundColor: Colors.light.background,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  confirmIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.light.errorLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: Colors.light.text,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  confirmMessage: {
+    fontSize: 14,
+    color: Colors.light.icon,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  confirmActions: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%",
+  },
+  confirmSecondaryBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.light.border,
+    backgroundColor: Colors.light.card,
+  },
+  confirmSecondaryBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Colors.light.text,
+  },
+  confirmDestructiveBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: Colors.light.error,
+  },
+  confirmDestructiveBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#fff",
   },
 })

@@ -165,7 +165,7 @@ export default function LocalDetailScreen() {
                                                     styles.especialidadPrecio,
                                                     isSelected && styles.especialidadPrecioActive,
                                                 ]}>
-                                                    Seña ${Number(esp.price).toLocaleString("es-AR")}
+                                                    Monto ${Number(esp.price).toLocaleString("es-AR")}
                                                 </Text>
                                             )}
                                         </View>
@@ -187,7 +187,7 @@ export default function LocalDetailScreen() {
                         <>
                             {selectedEsp?.price != null && (
                                 <Text style={styles.senaNota}>
-                                    Seña a abonar: ${Number(selectedEsp.price).toLocaleString("es-AR")}
+                                    Monto a abonar: ${Number(selectedEsp.price).toLocaleString("es-AR")}
                                 </Text>
                             )}
                             <TouchableOpacity

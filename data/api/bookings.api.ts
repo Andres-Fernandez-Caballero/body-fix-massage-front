@@ -18,6 +18,11 @@ export interface CreateBookingRequest {
     notes?: string;
 }
 
+export interface CancelBookingResponse {
+    message: string;
+    data: Booking;
+}
+
 export const bookingsApi = {
     getBookings: () => axiosInstance.get<BookingsResponse>('/api/v1/bookings/client'),
     makeBooking: (data: CreateBookingRequest) => axiosInstance.post('/api/v1/bookings', {
@@ -29,4 +34,6 @@ export const bookingsApi = {
         end_time: data.endTime,
         notes: data.notes,
     }),
+    cancelBooking: (bookingId: number) =>
+        axiosInstance.post<CancelBookingResponse>(`/api/v1/bookings/${bookingId}/cancel`),
 }

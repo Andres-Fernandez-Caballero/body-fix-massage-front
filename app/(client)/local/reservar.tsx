@@ -101,7 +101,7 @@ export default function ReservarScreen() {
             const booking = response.data
 
             if (booking.state.name === 'pending_payment') {
-                // ── Flujo con seña (Mercado Pago) ─────────────────────────
+                // ── Flujo con monto (Mercado Pago) ─────────────────────────
                 const paymentResult = await createPayment({
                     bookingId:     booking.id,
                     paymentMethod: 'mercado_pago',
@@ -121,7 +121,7 @@ export default function ReservarScreen() {
                     await WebBrowser.openBrowserAsync(paymentUrl)
                 }
             } else {
-                // ── Flujo sin seña ────────────────────────────────────────
+                // ── Flujo sin monto ────────────────────────────────────────
                 setBookingResult({
                     ok:           true,
                     date:         selectedDay.date,
@@ -455,7 +455,7 @@ export default function ReservarScreen() {
                                 </View>
 
                                 <Text style={styles.resultTitle}>
-                                    {bookingResult.ok && bookingResult.price !== null ? '¡Seña confirmada!' : '¡Reserva realizada!'}
+                                    {bookingResult.ok && bookingResult.price !== null ? 'Pago confirmado!' : '¡Reserva realizada!'}
                                 </Text>
                                 <Text style={styles.resultSubtitle}>
                                     {bookingResult.ok && bookingResult.price !== null
@@ -487,7 +487,7 @@ export default function ReservarScreen() {
                                         <View style={styles.resultRow}>
                                             <Ionicons name="cash-outline" size={16} color={Colors.light.primary} />
                                             <Text style={styles.resultRowText}>
-                                                Seña: ${Number(bookingResult.price).toLocaleString('es-AR')}
+                                                Monto: ${Number(bookingResult.price).toLocaleString('es-AR')}
                                             </Text>
                                         </View>
                                     )}

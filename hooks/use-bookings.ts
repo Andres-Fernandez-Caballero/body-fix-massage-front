@@ -53,6 +53,12 @@ export function useBookings() {
         }
     }, [addBooking, fetchBookings, setIsCreating, setError]);
 
+    const cancelBooking = useCallback(async (bookingId: number) => {
+        const response = await bookingsApi.cancelBooking(bookingId);
+        await fetchBookings();
+        return response.data;
+    }, [fetchBookings]);
+
     return {
         bookings,
         loading,
@@ -60,5 +66,6 @@ export function useBookings() {
         error,
         fetchBookings,
         createBooking,
+        cancelBooking,
     };
 }

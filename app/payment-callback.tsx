@@ -72,7 +72,7 @@ export default function PaymentCallbackScreen() {
                         <View style={[styles.iconBg, { backgroundColor: Colors.light.successLight }]}>
                             <Ionicons name="checkmark-circle" size={52} color={Colors.light.success} />
                         </View>
-                        <Text style={styles.title}>¡Seña confirmada!</Text>
+                        <Text style={styles.title}>¡Turno Reservado!</Text>
                         <Text style={styles.subtitle}>Tu pago fue aprobado y tu turno quedó confirmado.</Text>
                         <TouchableOpacity style={styles.primaryBtn} onPress={() => router.replace('/(client)/bookings')} activeOpacity={0.85}>
                             <Ionicons name="calendar" size={18} color="#fff" />

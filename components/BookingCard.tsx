@@ -101,7 +101,7 @@ export default function BookingCard({ booking, onViewDetails, onReview }: Bookin
               <Ionicons name="cash-outline" size={15} color={Colors.light.primary} />
             </View>
             <Text style={styles.detailText}>
-              Seña: ${Number(booking.price).toLocaleString("es-AR")}
+              Monto: ${Number(booking.price).toLocaleString("es-AR")}
             </Text>
           </View>
         )}

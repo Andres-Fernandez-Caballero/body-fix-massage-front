@@ -14,11 +14,11 @@ const SECTIONS = [
   },
   {
     title: "3. Reservas y cancelaciones",
-    body: "Las reservas se confirman una vez abonada la seña correspondiente. Las cancelaciones deben realizarse con al menos 24 horas de anticipación para evitar penalidades. La devolución de la seña en caso de cancelación queda sujeta a la política del local seleccionado.",
+    body: "Las reservas se confirman una vez abonado el monto correspondiente. Las cancelaciones deben realizarse con al menos 24 horas de anticipación para evitar penalidades. La devolución del monto en caso de cancelación queda sujeta a la política del local seleccionado.",
   },
   {
     title: "4. Pagos",
-    body: "Los pagos se procesan a través de pasarelas de pago seguras. BodyFix no almacena datos de tarjetas de crédito ni débito. El precio final del servicio es el indicado al momento de la reserva y puede incluir una seña previa.",
+    body: "Los pagos se procesan a través de pasarelas de pago seguras. BodyFix no almacena datos de tarjetas de crédito ni débito. El precio final del servicio es el indicado al momento de la reserva.",
   },
   {
     title: "5. Responsabilidades del usuario",
