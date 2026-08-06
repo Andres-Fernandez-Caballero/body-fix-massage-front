@@ -2,7 +2,7 @@
   "expo": {
     "name": "BodyFix",
     "slug": "bodyfix-mobile-app",
-    "version": "1.1.2",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -67,7 +67,8 @@
         }
       ],
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ],
     "scheme": "bodyfix",
     "extra": {
